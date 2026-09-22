@@ -1,0 +1,25 @@
+# 播放器维护说明
+
+## 职责边界
+
+- `ModernPlayer.jsx`：接入 `react-modern-audio-player`，转换歌曲 ID、音源、标题和封面，配置开源控件。
+- `PlayerStateBridge.jsx`：连接开源播放器状态和 Wiki 控制 API，处理缓冲和媒体错误。只允许第三方组件拥有一个音频实例。
+- `PlayerContext.jsx`：读取站内歌曲，向作品页提供 `playAt` 等接口，计算当前 LRC 歌词。
+- `PlayerDrawer.jsx`：队列与歌词弹层、手机标签、播放模式和音量。
+- `LyricsPanel.jsx` / `lyrics.js`：歌词解析、当前行跟随和点击跳转。
+- `player.css`：限制在 `.modern-player` 内的第三方样式覆盖，底栏最大 960px、移动端重新布局。
+
+播放器在 `main.jsx` 中全局挂载，导航不会创建新的音频实例。后台路由隐藏底栏但保留播放。
+`MiniPlayer` 和 `DesktopPlayerDock` 是兼容入口，不应和全局 `ModernPlayer` 同时挂载。
+歌曲来自现有公开内容 API；没有音源的歌曲不会加入队列，不会自动开始播放。
+不接入网易云接口，也不下载或代理第三方版权音乐。
+
+## 升级与验证
+
+当前锁文件安装 `react-modern-audio-player` 2.4.4，使用原生音频和条形进度，不启用波形。
+库自带 CSS 已由模块导入，不要再次手动引入。升级依赖时检查 `rmap-*` 类名和公开 hooks。
+歌曲 ID 使用稳定数字映射，业务数据库 ID 保持不变。
+
+运行 `npm test` 执行后端与前端测试；运行 `npm run build` 检查正式构建。
+`ModernPlayer.test.jsx` 使用模拟音频事件测试单实例、选歌、进度、歌词、错误和路由生命周期，不写数据库。
+真实音频解码、网络中断和浏览器播放策略仍需使用已授权音源在浏览器里试听验证。

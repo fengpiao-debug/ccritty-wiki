@@ -1,0 +1,5 @@
+node_modules/
+dist/
+apps/server/data/store.json
+apps/server/uploads/
+.env

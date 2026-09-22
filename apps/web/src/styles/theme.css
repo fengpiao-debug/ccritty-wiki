@@ -1,0 +1,34 @@
+/* 文件作用：apps/web/src/styles/theme.css 的样式定义，负责该模块的视觉表现。 */
+@import "tailwindcss";
+
+:root {
+  --paper: #f4f0e5;
+  --paper-deep: #e8e0cf;
+  --paper-light: #fbf8f0;
+  --ink: #24211d;
+  --muted: rgba(36, 33, 29, .54);
+  --line: rgba(36, 33, 29, .12);
+  --red: #a82d2c;
+  --red-deep: #751f20;
+  --teal: #397a73;
+  --shadow: 0 22px 60px rgba(72, 56, 37, .12);
+}
+
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+body { margin: 0; min-width: 320px; color: var(--ink); background: var(--paper); font-family: "Noto Serif SC", "STSong", serif; }
+button, input, textarea { font: inherit; }
+button { cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--red); outline-offset: 3px; }
+.icon-button { display: inline-grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 50%; color: inherit; background: transparent; }
+.icon-button:hover { background: rgba(168, 45, 44, .09); }
+.eyebrow { margin: 0 0 8px; color: var(--red); font: 700 10px/1.2 ui-sans-serif, sans-serif; letter-spacing: .28em; text-transform: uppercase; }
+.muted-copy, .empty-copy { color: var(--muted); line-height: 1.8; }
+.text-link, .source-link { display: inline-flex; align-items: center; gap: 7px; color: var(--red); font: 700 12px/1.5 ui-sans-serif, sans-serif; }
+.solid-button, .subtle-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 0 16px; border: 1px solid transparent; border-radius: 999px; }
+.solid-button { color: #fff8ef; background: var(--red-deep); }
+.solid-button:disabled { opacity: .5; cursor: wait; }
+.subtle-button { color: var(--ink); background: rgba(255,255,255,.5); border-color: var(--line); }
+.subtle-button:hover { border-color: rgba(168,45,44,.35); }
+.compact { min-height: 34px; font-size: 12px; }

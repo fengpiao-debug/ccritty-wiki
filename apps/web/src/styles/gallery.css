@@ -1,0 +1,2 @@
+/* 文件作用：apps/web/src/styles/gallery.css 的样式定义，负责该模块的视觉表现。 */
+.gallery-tile:nth-child(3n+1) { min-height: 260px; }.gallery-tile:nth-child(3n+1) img { min-height: 260px; }.gallery-tile:nth-child(3n+2) { min-height: 190px; }.gallery-tile:nth-child(3n+3) { min-height: 320px; }.gallery-tile:nth-child(3n+3) img { min-height: 320px; }
