@@ -8,7 +8,7 @@ export function validateUserInput(body, creating = false) {
     if (typeof body.password !== 'string' || body.password.length < 8 || body.password.length > 200) return '密码长度须为 8 至 200 位'
   }
   if (!Array.isArray(body.permissions) || body.permissions.some((permission) => !PERMISSIONS.includes(permission) || permission === 'user.manage')) return '只能分配已知的内容权限'
-  for (const scope of ['text', 'image', 'music', 'video']) {
+  for (const scope of ['text', 'image', 'image.song', 'image.video', 'music', 'video']) {
     if (body.permissions.includes(`${scope}.write`) && !body.permissions.includes(`${scope}.read`)) return '编辑权限必须同时包含查看权限'
   }
   return ''

@@ -2,7 +2,8 @@
 const MB = 1024 * 1024
 export const UPLOAD_TYPES = {
   image: { permission: 'image.write', extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'], maxSize: 25 * MB, label: '图片', hint: 'JPG / PNG / WEBP / GIF / AVIF · 最大 25MB' },
-  cover: { permission: 'music.write', extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'], maxSize: 25 * MB, label: '歌曲封面', hint: 'JPG / PNG / WEBP / GIF / AVIF · 最大 25MB' },
+  cover: { permission: 'image.song.write', extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'], maxSize: 25 * MB, label: '歌曲封面', hint: 'JPG / PNG / WEBP / GIF / AVIF · 最大 25MB' },
+  videoCover: { permission: 'image.video.write', extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'], maxSize: 25 * MB, label: '视频封面', hint: 'JPG / PNG / WEBP / GIF / AVIF · 最大 25MB' },
   audio: { permission: 'music.write', extensions: ['.mp3', '.m4a', '.wav', '.ogg', '.flac', '.aac'], maxSize: 25 * MB, label: '音频', hint: 'MP3 / M4A / WAV / OGG / FLAC / AAC · 最大 25MB' },
   text: { permission: 'text.write', extensions: ['.md', '.txt'], maxSize: MB, label: '正文', hint: 'UTF-8 · MD / TXT · 最大 1MB' },
   lyrics: { permission: 'music.write', extensions: ['.lrc', '.txt'], maxSize: MB, label: '歌词', hint: 'UTF-8 · LRC / TXT · 最大 1MB' },

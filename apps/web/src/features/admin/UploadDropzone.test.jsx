@@ -1,6 +1,6 @@
 // 文件作用：验证拖拽/选择上传、权限可见性、错误重试、取消和异步回填，不向真实后端发送文件。
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useState } from 'react'
 import { UploadDropzone } from './UploadDropzone'
 import { ContentFields } from './ContentFields'
@@ -8,11 +8,20 @@ import { uploadFile } from './uploadApi'
 import { can, permissionsForUser } from '@artist-wiki/permissions'
 
 const fixture = vi.hoisted(() => ({ user: { role: 'editor', permissions: ['music.read', 'music.write'] } }))
+const videoApi = vi.hoisted(() => ({ resolveVideo: vi.fn() }))
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ can: (permission) => can(permissionsForUser(fixture.user), permission) }) }))
 vi.mock('./uploadApi', () => ({ uploadFile: vi.fn() }))
+vi.mock('../../lib/api', () => ({ contentApi: videoApi }))
 const audio = () => new File(['audio fixture'], 'song.mp3', { type: 'audio/mpeg' })
 const drop = (label, files) => fireEvent.drop(screen.getByRole('group', { name: label }), { dataTransfer: { files, getData: () => '' } })
-beforeEach(() => { vi.clearAllMocks(); fixture.user = { role: 'editor', permissions: ['music.read', 'music.write'] } })
+beforeEach(() => {
+  vi.clearAllMocks()
+  fixture.user = { role: 'editor', permissions: ['music.read', 'music.write'] }
+  videoApi.resolveVideo.mockResolvedValue({
+    bvid: 'BV1xx411c7mD', embedUrl: 'https://player.bilibili.com/player.html?bvid=BV1xx411c7mD&page=1&autoplay=0',
+    title: 'B 站识别标题', description: 'B 站识别简介', cover: 'https://i.example/cover.jpg',
+  })
+})
 afterEach(cleanup)
 
 describe('拖拽上传', () => {
@@ -77,10 +86,18 @@ describe('拖拽上传', () => {
     const view = render(<ContentFields type="song" value={{}} onChange={vi.fn()} uploads />)
     expect(screen.getByRole('group', { name: '拖拽音频文件' })).toBeTruthy()
     expect(screen.getByRole('group', { name: '拖拽歌词文件' })).toBeTruthy()
-    expect(screen.getByRole('group', { name: '拖拽歌曲封面' })).toBeTruthy()
-    fixture.user.permissions.push('image.write')
+    expect(screen.queryByRole('group', { name: '拖拽歌曲封面' })).toBeNull()
+    fixture.user.permissions.push('image.song.write')
     view.rerender(<ContentFields type="song" value={{}} onChange={vi.fn()} uploads />)
     expect(screen.getByRole('group', { name: '拖拽歌曲封面' })).toBeTruthy()
+  })
+  it('图片编辑者可以改封面但不会获得音乐编辑入口', () => {
+    fixture.user = { role: 'editor', permissions: ['image.song.read', 'image.song.write'] }
+    render(<ContentFields type="song" value={{ cover: '/uploads/images/old.png' }} onChange={vi.fn()} uploads />)
+    expect(screen.getByRole('group', { name: '拖拽歌曲封面' })).toBeTruthy()
+    expect(screen.queryByRole('group', { name: '拖拽音频文件' })).toBeNull()
+    expect(screen.getByRole('textbox', { name: '封面图片地址' }).disabled).toBe(false)
+    expect(screen.queryByRole('group', { name: '拖拽歌词文件' })).toBeNull()
   })
   it('只读或管理员不显示上传入口', () => {
     fixture.user = { role: 'editor', permissions: ['music.read'] }
@@ -90,7 +107,7 @@ describe('拖拽上传', () => {
     view.rerender(<ContentFields type="song" value={{}} onChange={vi.fn()} uploads />)
     expect(screen.queryByRole('group')).toBeNull()
   })
-  it('B站链接可拖拽解析，但不把外站链接和本地视频当作合法信息', () => {
+  it('B站解析会请求元数据并回填标题简介，同时拒绝外站链接和本地视频', async () => {
     fixture.user = { role: 'editor', permissions: ['video.write'] }
     function Fields() {
       const [value, setValue] = useState({})
@@ -98,11 +115,35 @@ describe('拖拽上传', () => {
     }
     render(<Fields />)
     const group = screen.getByRole('group', { name: '拖拽 B 站链接或 TXT 文件' })
-    fireEvent.drop(group, { dataTransfer: { files: [], getData: () => 'https://www.bilibili.com/video/BV1xx411c7mD/' } })
-    expect(screen.getByRole('textbox', { name: 'BV 号' }).value).toBe('BV1xx411c7mD')
-    fireEvent.drop(group, { dataTransfer: { files: [], getData: () => 'https://evil.test/video/BV1xx411c7mD/' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'B 站视频链接或 BV/AV 号' }), { target: { value: 'BV1xx411c7mD' } })
+    fireEvent.click(screen.getByRole('button', { name: '解析链接' }))
+    await waitFor(() => expect(videoApi.resolveVideo).toHaveBeenCalledWith('BV1xx411c7mD'))
+    await waitFor(() => expect(screen.getByRole('textbox', { name: '视频名称' }).value).toBe('B 站识别标题'))
+    expect(screen.getByRole('textbox', { name: '视频简介' }).value).toBe('B 站识别简介')
+    expect(screen.getByRole('textbox', { name: /封面图片地址/ }).value).toBe('')
+    fireEvent.change(screen.getByRole('textbox', { name: 'B 站视频链接或 BV/AV 号' }), { target: { value: 'https://evil.test/video/BV1xx411c7mD' } })
+    fireEvent.click(screen.getByRole('button', { name: '解析链接' }))
     expect(screen.getByRole('alert').textContent).toContain('只允许 B 站')
+    fireEvent.drop(group, { dataTransfer: { files: [], getData: () => 'https://www.bilibili.com/video/BV1xx411c7mD/' } })
+    await waitFor(() => expect(videoApi.resolveVideo).toHaveBeenLastCalledWith('https://www.bilibili.com/video/BV1xx411c7mD/'))
+    await waitFor(() => expect(within(group).getByRole('status').textContent).toContain('已导入表单'))
+    fireEvent.drop(group, { dataTransfer: { files: [], getData: () => 'https://evil.test/video/BV1xx411c7mD/' } })
+    await waitFor(() => expect(within(group).getByRole('alert').textContent).toContain('只允许 B 站'))
     drop('拖拽 B 站链接或 TXT 文件', [new File(['v'], 'movie.mp4', { type: 'video/mp4' })])
     expect(uploadFile).not.toHaveBeenCalled()
+  })
+
+  it('导入 B 站 TXT 文件也会请求并回填视频名称', async () => {
+    fixture.user = { role: 'editor', permissions: ['video.write'] }
+    uploadFile.mockResolvedValue({ bvid: 'BV1xx411c7mD', embedUrl: 'https://player.bilibili.com/player.html?bvid=BV1xx411c7mD' })
+    function Fields() {
+      const [value, setValue] = useState({})
+      return <ContentFields type="video" value={value} onChange={setValue} uploads />
+    }
+    render(<Fields />)
+    drop('拖拽 B 站链接或 TXT 文件', [new File(['BV1xx411c7mD'], 'video.txt', { type: 'text/plain' })])
+    await waitFor(() => expect(videoApi.resolveVideo).toHaveBeenCalledWith(expect.stringContaining('BV1xx411c7mD')))
+    await waitFor(() => expect(screen.getByRole('textbox', { name: '视频名称' }).value).toBe('B 站识别标题'))
+    expect(within(screen.getByRole('group', { name: '拖拽 B 站链接或 TXT 文件' })).getByRole('status').textContent).toContain('已导入表单')
   })
 })

@@ -1,4 +1,6 @@
 // 文件作用：apps/web/src/lib/api.js，负责项目公共配置或辅助逻辑。
+import { resolveBilibiliJsonp } from './bilibiliJsonp'
+
 export const API_BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '')
 
 export async function apiRequest(path, options = {}) {
@@ -16,6 +18,16 @@ export async function apiRequest(path, options = {}) {
     throw error
   }
   return payload
+}
+
+async function resolveVideo(source) {
+  try {
+    return await apiRequest('/admin/videos/resolve', { method: 'POST', body: JSON.stringify({ source }) })
+  } catch (error) {
+    if (![502, 504].includes(error.status)) throw error
+    try { return await resolveBilibiliJsonp(source) }
+    catch (fallbackError) { throw new Error(`${error.message}；浏览器端获取失败：${fallbackError.message}`) }
+  }
 }
 
 export const contentApi = {
@@ -39,6 +51,9 @@ export const contentApi = {
   unlock: (type, id) =>
     apiRequest(`/admin/locks/${type}/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   users: () => apiRequest('/admin/users'),
+  imageAssets: () => apiRequest('/admin/image-assets'),
+  resolveVideo,
+  updateImageAsset: (type, id, url) => apiRequest(`/admin/image-assets/${type}/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ url }) }),
   auditLogs: () => apiRequest('/admin/audit-logs'),
   createUser: (body) => apiRequest('/admin/users', { method: 'POST', body: JSON.stringify(body) }),
   updateUser: (id, body) =>

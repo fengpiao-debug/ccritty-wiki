@@ -4,6 +4,10 @@ export const PERMISSIONS = [
   'text.write',
   'image.read',
   'image.write',
+  'image.song.read',
+  'image.song.write',
+  'image.video.read',
+  'image.video.write',
   'music.read',
   'music.write',
   'video.read',
@@ -41,4 +45,19 @@ export function canReadContent(permissions, type) {
 export function canWriteContent(permissions, type) {
   const scope = CONTENT_PERMISSION[type]
   return can(permissions, `${scope}.write`)
+}
+
+// 根据图片所属内容返回最小图片权限；通用图片权限仍覆盖非歌曲/视频图片。
+export function imagePermissionForType(type, action = 'read') {
+  if (type === 'song') return `image.song.${action}`
+  if (type === 'video') return `image.video.${action}`
+  return `image.${action}`
+}
+
+export function canReadImage(permissions, type) {
+  return can(permissions, imagePermissionForType(type, 'read')) || can(permissions, 'image.read')
+}
+
+export function canWriteImage(permissions, type) {
+  return can(permissions, imagePermissionForType(type, 'write')) || can(permissions, 'image.write')
 }

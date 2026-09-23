@@ -13,6 +13,8 @@ import { decodeMultipartFilename, prepareUpload, saveUpload } from './services/u
 import { requireUploadPermission } from './middleware/uploadPermission.js'
 import { parseBilibili } from '@artist-wiki/content-types'
 import { validateAssetChanges } from './services/contentAssetPermissions.js'
+import { listImageAssets, updateImageAsset } from './services/imageAssetService.js'
+import { BilibiliMetadataError, resolveBilibiliMetadata } from './services/bilibiliMetadataService.js'
 
 const app = express()
 const port = Number(process.env.PORT || 3007)
@@ -91,6 +93,26 @@ app.get('/api/admin/content', (request, response) => {
   const allowed = Object.entries(listContent()).filter(([key]) => can(request.actor.permissions, `${scopes[key]}.read`))
   if (!allowed.length) return response.status(403).json({ message: '当前账号没有内容查看权限' })
   response.json(Object.fromEntries(allowed))
+})
+app.get('/api/admin/image-assets', (request, response) => {
+  const result = listImageAssets(request.actor)
+  if (!result) return response.status(403).json({ message: '当前账号没有图片查看权限' })
+  response.json(result)
+})
+app.put('/api/admin/image-assets/:type/:id', async (request, response) => {
+  if (typeof request.body?.url !== 'string') return response.status(400).json({ message: '请提供图片地址' })
+  const result = await updateImageAsset(request.params.type, request.params.id, request.body.url, request.actor)
+  if (result.status) return response.status(result.status).json({ message: result.message })
+  response.json({ item: result.item })
+})
+app.post('/api/admin/videos/resolve', requirePermission('video.write'), async (request, response) => {
+  try {
+    const source = request.body?.source ?? request.body?.url ?? request.body?.bvid ?? request.body?.embedUrl
+    response.json(await resolveBilibiliMetadata(source))
+  } catch (error) {
+    if (error instanceof BilibiliMetadataError) return response.status(error.status).json({ message: error.message })
+    response.status(502).json({ message: 'B 站视频解析失败' })
+  }
 })
 app.get('/api/admin/users', requirePermission('user.manage'), (_request, response) => response.json({ items: getState().users.map(({ password, passwordHash, passwordSalt, ...user }) => ({ ...user, permissions: permissionsForUser(user) })) }))
 app.get('/api/admin/audit-logs', requirePermission('user.manage'), (_request, response) => {

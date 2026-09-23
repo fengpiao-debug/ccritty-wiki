@@ -12,7 +12,9 @@ export const adminModules = [
 
 export const permissionGroups = [
   { scope: 'text', label: '文字', detail: '简介、动态、活动' },
-  { scope: 'image', label: '图片', detail: '照片、图片资源' },
+  { scope: 'image', label: '图片', detail: '照片、首页和活动图片' },
+  { scope: 'image.song', label: '歌曲封面', detail: '仅歌曲封面图片' },
   { scope: 'music', label: '音乐', detail: '歌曲、音频、歌词' },
+  { scope: 'image.video', label: '视频封面', detail: '仅视频封面图片' },
   { scope: 'video', label: '视频', detail: 'B 站视频资料' },
 ]

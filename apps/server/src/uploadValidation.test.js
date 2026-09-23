@@ -7,6 +7,12 @@ import { requireUploadPermission } from './middleware/uploadPermission.js'
 import { validateAssetChanges } from './services/contentAssetPermissions.js'
 import { parseBilibili } from '@artist-wiki/content-types'
 import sharp from 'sharp'
+import { createId } from '@artist-wiki/content-types'
+
+test('createId supports browser crypto implementations without randomUUID', () => {
+  const id = createId('video', { getRandomValues: (bytes) => bytes.fill(0) })
+  assert.match(id, /^video-00000000-0000-4000-8000-000000000000$/)
+})
 
 test('rejects a double-extension executable disguised as an image', () => {
   const result = validateUpload({
@@ -113,9 +119,9 @@ test('Bilibili information imports normalize allowlisted embeds', async () => {
 })
 
 test('upload permission matrix permits only matching writers; read-only and admin cannot upload', () => {
-  const permissionFor = { image: 'image.write', cover: 'music.write', audio: 'music.write', text: 'text.write', lyrics: 'music.write', video: 'video.write' }
+  const permissionFor = { image: 'image.write', cover: 'image.song.write', audio: 'music.write', text: 'text.write', lyrics: 'music.write', video: 'video.write' }
   const roles = [
-    { role: 'admin', permissions: ['*', 'image.write', 'text.write', 'music.write', 'video.write'] },
+    { role: 'admin', permissions: ['*', 'image.write', 'image.song.write', 'text.write', 'music.write', 'video.write'] },
     ...['text', 'image', 'music', 'video'].flatMap((scope) => [
       { role: 'editor', permissions: [`${scope}.read`] },
       { role: 'editor', permissions: [`${scope}.read`, `${scope}.write`] },
@@ -131,10 +137,12 @@ test('upload permission matrix permits only matching writers; read-only and admi
   }
 })
 
-test('direct cover edits cannot bypass image permission', () => {
+test('all image asset edits require image permission, including song covers', () => {
   const musicEditor = { role: 'editor', permissions: ['music.read', 'music.write'] }
-  assert.equal(validateAssetChanges({ cover: '/old.png' }, { cover: '/new.png' }, musicEditor, 'song'), '')
+  assert.notEqual(validateAssetChanges({ cover: '/old.png' }, { cover: '/new.png' }, musicEditor, 'song'), '')
   assert.notEqual(validateAssetChanges({ cover: '/old.png' }, { cover: '/new.png' }, musicEditor, 'photo'), '')
   assert.notEqual(validateAssetChanges({}, { heroImage: '/new.png' }, musicEditor, 'song'), '')
-  assert.equal(validateAssetChanges({}, { cover: '/new.png' }, { role: 'editor', permissions: ['image.write'] }), '')
+  assert.equal(validateAssetChanges({}, { cover: '/new.png' }, { role: 'editor', permissions: ['image.song.read', 'image.song.write'] }, 'song'), '')
+  assert.equal(validateAssetChanges({}, { cover: '/new.png' }, { role: 'editor', permissions: ['image.video.read', 'image.video.write'] }, 'video'), '')
+  assert.notEqual(validateAssetChanges({}, { heroImage: '/new.png' }, { role: 'editor', permissions: ['image.song.read', 'image.song.write'] }, 'song'), '')
 })

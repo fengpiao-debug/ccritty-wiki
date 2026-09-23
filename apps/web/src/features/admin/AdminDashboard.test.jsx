@@ -16,8 +16,10 @@ vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({ session: fixture.user, loading: false, logout: vi.fn(), can: (permission) => can(permissionsForUser(fixture.user), permission) }),
 }))
 vi.mock('../../lib/api', () => ({
-  contentApi: { users: vi.fn(), createUser: vi.fn(), updateUser: vi.fn(), deleteUser: vi.fn(), getAdminContent: vi.fn(), lock: vi.fn(), unlock: vi.fn() },
+  contentApi: { users: vi.fn(), createUser: vi.fn(), updateUser: vi.fn(), deleteUser: vi.fn(), getAdminContent: vi.fn(), imageAssets: vi.fn(), updateImageAsset: vi.fn(), lock: vi.fn(), unlock: vi.fn() },
 }))
+vi.mock('./uploadApi', () => ({ uploadFile: vi.fn() }))
+import { uploadFile } from './uploadApi'
 const admin = { id: 'admin', username: 'admin', displayName: '系统管理员', role: 'admin', permissions: ['*'] }
 const editor = { id: 'editor-a', username: 'editor-a', displayName: '文字编辑', role: 'editor', permissions: ['text.read', 'text.write'] }
 function mount(path = '/admin') {
@@ -30,6 +32,11 @@ beforeEach(() => {
   contentApi.getAdminContent.mockResolvedValue({ profile: { id: 'profile', artistName: '测试歌手' }, news: [{ id: 'news-1', title: '测试动态' }], events: [] })
   contentApi.createUser.mockResolvedValue({})
   contentApi.updateUser.mockResolvedValue({})
+  contentApi.imageAssets.mockResolvedValue({ items: [
+    { type: 'song', id: 'song-1', title: '测试歌曲', field: 'cover', label: '歌曲', url: '/old.png' },
+  ] })
+  contentApi.updateImageAsset.mockResolvedValue({})
+  uploadFile.mockResolvedValue({ url: '/uploads/images/new-cover.png' })
 })
 afterEach(cleanup)
 
@@ -62,6 +69,25 @@ describe('后台职责与交互', () => {
     mount()
     expect(await screen.findByRole('heading', { name: '暂无内容权限' })).toBeTruthy()
     expect(contentApi.getAdminContent).not.toHaveBeenCalled()
+  })
+  it('图片编辑者可进入独立图片工作台并更新歌曲封面', async () => {
+  fixture.user = { id: 'image-editor', username: 'image-editor', displayName: '图片编辑', role: 'editor', permissions: ['image.song.read', 'image.song.write'] }
+    mount()
+    expect(await screen.findByRole('heading', { name: '图片素材', exact: true })).toBeTruthy()
+    expect(screen.getByRole('textbox', { name: '测试歌曲图片地址' }).value).toBe('/old.png')
+    const uploadZone = screen.getByRole('group', { name: '上传测试歌曲图片' })
+    fireEvent.drop(uploadZone, { dataTransfer: { files: [new File(['image'], 'cover.png', { type: 'image/png' })] } })
+    await waitFor(() => expect(contentApi.updateImageAsset).toHaveBeenCalledWith('song', 'song-1', '/uploads/images/new-cover.png'))
+    expect(uploadFile).toHaveBeenCalledWith(expect.any(File), 'image', expect.any(Object))
+    expect(contentApi.getAdminContent).not.toHaveBeenCalled()
+  })
+  it('图片只读账号可以查看素材但不能编辑或上传', async () => {
+  fixture.user = { id: 'image-reader', username: 'image-reader', displayName: '图片查看', role: 'editor', permissions: ['image.song.read'] }
+    mount('/admin/images')
+    await screen.findByRole('heading', { name: '图片素材', exact: true })
+    expect(screen.getByText('查看图片')).toBeTruthy()
+    expect(screen.queryByRole('textbox', { name: '测试歌曲图片地址' })).toBeNull()
+    expect(contentApi.updateImageAsset).not.toHaveBeenCalled()
   })
   it('只读编辑者没有新增按钮或编辑按钮', async () => {
     fixture.user = { ...editor, permissions: ['text.read'] }
