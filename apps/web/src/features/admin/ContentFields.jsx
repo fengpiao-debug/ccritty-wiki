@@ -13,8 +13,9 @@ const fields = {
 
 export function ContentFields({ type, value, onChange, disabled, onBusyChange, uploads = false }) {
   const auth = useAuth()
-  const patch = (changes) => onChange?.((current) => ({ ...current, ...changes }))
+  const patch = (changes) => onChange?.((current) => ({ ...current, ...(typeof changes === 'function' ? changes(current) : changes) }))
   const imageField = type === 'profile' ? 'heroImage' : type === 'photo' ? 'url' : 'cover'
+  const canEditCover = type === 'song' ? auth.can('image.write') || auth.can('music.write') : auth.can('image.write')
   return <>
     {uploads && <ContentUploads type={type} disabled={disabled} onPatch={patch} onBusyChange={onBusyChange} />}
     <div className="cms-form-grid">{(fields[type] || []).map(([key, label, inputType = 'text']) =>
@@ -22,8 +23,8 @@ export function ContentFields({ type, value, onChange, disabled, onBusyChange, u
       {inputType === 'textarea' ? <textarea disabled={disabled} rows={key === 'markdown' ? 10 : 5} value={value[key] || ''} onChange={(e) => patch({ [key]: e.target.value })} /> :
         <input disabled={disabled} required={key === 'title' || key === 'artistName'} type={inputType} value={value[key] || ''} onChange={(e) => patch(type === 'video' && key === 'bvid' ? { bvid: e.target.value, embedUrl: '' } : { [key]: e.target.value })} />}
     </label>)}
-    {type !== 'photo' && <label className="full">封面图片地址{!auth.can('image.write') && !disabled ? '（需图片编辑权限）' : ''}
-      <input disabled={disabled || !auth.can('image.write')} value={value[imageField] || ''} onChange={(event) => patch({ [imageField]: event.target.value })} /></label>}
+    {type !== 'photo' && <label className="full">封面图片地址{!canEditCover && !disabled ? '（需图片编辑权限）' : ''}
+      <input disabled={disabled || !canEditCover} value={value[imageField] || ''} onChange={(event) => patch({ [imageField]: event.target.value })} /></label>}
     {value[imageField] && <div className="full cms-asset-preview"><img src={value[imageField]} alt="图片预览" /></div>}
     {type === 'song' && value.audioUrl && <div className="full cms-asset-preview"><audio controls preload="none" src={value.audioUrl} aria-label="音频试听" /></div>}
     </div>

@@ -67,6 +67,7 @@
 .cms-registry { background: #fff; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .cms-section-title { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 19px 22px 0; }
 .cms-section-title h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.cms-section-title h2 { display: inline-flex; align-items: center; gap: 8px; }
 .cms-section-title h2 span { display: inline-block; margin-left: 8px; color: #8a929b; font-size: 12px; font-weight: 400; }
 .cms-muted { color: #8b959f; font-size: 12px; }
 .cms-toolbar { display: flex; align-items: center; gap: 12px; padding: 18px 22px; }
@@ -149,6 +150,8 @@ p.cms-upload-success { margin: 10px 0 0; font-size: 12px; }
 .cms-asset-preview { padding: 8px 0; }
 .cms-asset-preview img { display: block; max-width: 100%; height: 140px; object-fit: contain; border: 1px solid #e4e8ec; border-radius: 4px; }
 .cms-asset-preview audio { display: block; width: min(100%, 420px); }
+.audit-time { white-space: nowrap; color: var(--muted); font-size: 12px; }
+.audit-detail { max-width: 360px; overflow-wrap: anywhere; color: var(--ink); }
 @media (max-width: 1000px) {
   .cms-shell { grid-template-columns: 190px minmax(0, 1fr); }
   .cms-main { padding: 24px 20px; }
@@ -178,6 +181,7 @@ p.cms-upload-success { margin: 10px 0 0; font-size: 12px; }
   .cms-toolbar { flex-wrap: wrap; gap: 8px; }
   .cms-search { width: 100%; }
   .cms-table { min-width: 600px; }
+  .audit-table { min-width: 760px; }
   .permission-table { min-width: 0; }
   .cms-dialog { max-height: calc(100dvh - 24px); }
   .cms-modal-backdrop { padding: 12px; }

@@ -3,3 +3,4 @@ dist/
 apps/server/data/store.json
 apps/server/uploads/
 .env
+test.env

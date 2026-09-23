@@ -73,14 +73,14 @@ describe('拖拽上传', () => {
     expect(screen.getByRole('textbox', { name: '歌曲名称' }).value).toBe('上传时修改的标题')
     expect(screen.getByRole('textbox', { name: '音频地址' }).value).toBe('/uploads/audio/test.mp3')
   })
-  it('音乐编辑者可上传音频歌词但不能上传封面，图片权限单独授权', () => {
+  it('音乐编辑者可上传音频、歌词和歌曲封面，其他图片权限单独授权', () => {
     const view = render(<ContentFields type="song" value={{}} onChange={vi.fn()} uploads />)
     expect(screen.getByRole('group', { name: '拖拽音频文件' })).toBeTruthy()
     expect(screen.getByRole('group', { name: '拖拽歌词文件' })).toBeTruthy()
-    expect(screen.queryByRole('group', { name: '拖拽封面图片' })).toBeNull()
+    expect(screen.getByRole('group', { name: '拖拽歌曲封面' })).toBeTruthy()
     fixture.user.permissions.push('image.write')
     view.rerender(<ContentFields type="song" value={{}} onChange={vi.fn()} uploads />)
-    expect(screen.getByRole('group', { name: '拖拽封面图片' })).toBeTruthy()
+    expect(screen.getByRole('group', { name: '拖拽歌曲封面' })).toBeTruthy()
   })
   it('只读或管理员不显示上传入口', () => {
     fixture.user = { role: 'editor', permissions: ['music.read'] }

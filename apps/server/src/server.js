@@ -4,12 +4,12 @@ import cors from 'cors'
 import multer from 'multer'
 import path from 'node:path'
 import { authRequired, hashPassword, issueToken, verifyPassword } from './auth.js'
-import { audit, getState, initStore, nextId, persist } from './store.js'
+import { audit, cleanupAuditLogs, getAuditRetentionDays, getState, initStore, nextId, persist } from './store.js'
 import { hydrateUser, requireContentRead, requireContentWrite, requirePermission } from './middleware/permissions.js'
 import { can, permissionsForUser } from '@artist-wiki/permissions'
 import { validateUserInput } from './services/userValidation.js'
 import { deleteItem, getItem, getSnapshot, listContent, listVersions, restoreItem, saveItem } from './services/contentService.js'
-import { prepareUpload, saveUpload } from './services/uploadService.js'
+import { decodeMultipartFilename, prepareUpload, saveUpload } from './services/uploadService.js'
 import { requireUploadPermission } from './middleware/uploadPermission.js'
 import { parseBilibili } from '@artist-wiki/content-types'
 import { validateAssetChanges } from './services/contentAssetPermissions.js'
@@ -18,6 +18,7 @@ const app = express()
 const port = Number(process.env.PORT || 3007)
 const upload = multer({
   storage: multer.memoryStorage(),
+  defParamCharset: 'utf8',
   limits: { fileSize: 25 * 1024 * 1024, files: 1, fields: 0, parts: 1 },
 })
 const loginAttempts = new Map()
@@ -92,6 +93,21 @@ app.get('/api/admin/content', (request, response) => {
   response.json(Object.fromEntries(allowed))
 })
 app.get('/api/admin/users', requirePermission('user.manage'), (_request, response) => response.json({ items: getState().users.map(({ password, passwordHash, passwordSalt, ...user }) => ({ ...user, permissions: permissionsForUser(user) })) }))
+app.get('/api/admin/audit-logs', requirePermission('user.manage'), (_request, response) => {
+  const users = new Map(getState().users.map((user) => [user.username, user.displayName]))
+  const items = getState().audit.map((item) => {
+    const metadata = item.metadata ? {
+      ...item.metadata,
+      fileName: item.metadata.fileName ? decodeMultipartFilename(item.metadata.fileName) : item.metadata.fileName,
+    } : item.metadata
+    return {
+      ...item,
+      metadata,
+      actorName: users.get(item.actor) || item.actor,
+    }
+  })
+  response.json({ items, retentionDays: getAuditRetentionDays() })
+})
 
 app.post('/api/admin/users', requirePermission('user.manage'), async (request, response) => {
   const { username, displayName, password, permissions = [] } = request.body || {}
@@ -100,7 +116,13 @@ app.post('/api/admin/users', requirePermission('user.manage'), async (request, r
   if (getState().users.some((user) => user.username.toLowerCase() === username.toLowerCase())) return response.status(409).json({ message: '账号已存在' })
   const credentials = hashPassword(password)
   const user = { id: nextId('user'), username, displayName, role: 'editor', permissions, ...{ passwordHash: credentials.hash, passwordSalt: credentials.salt } }
-  getState().users.push(user); await persist(); await audit({ actor: request.actor.username, action: 'user.create', target: 'user', targetId: user.id })
+  getState().users.push(user); await persist(); await audit({
+    actor: request.actor.username,
+    action: 'user.create',
+    target: 'user',
+    targetId: user.id,
+    metadata: { username, displayName, role: user.role, permissions },
+  })
   response.status(201).json({ item: { id: user.id, username, displayName, role: user.role, permissions } })
 })
 
@@ -119,7 +141,13 @@ app.put('/api/admin/users/:id', requirePermission('user.manage'), async (request
     user.passwordSalt = credentials.salt
   }
   await persist()
-  await audit({ actor: request.actor.username, action: 'user.update', target: 'user', targetId: user.id })
+  await audit({
+    actor: request.actor.username,
+    action: 'user.update',
+    target: 'user',
+    targetId: user.id,
+    metadata: { username: user.username, displayName: user.displayName, permissions: user.permissions },
+  })
   const { passwordHash, passwordSalt, password: legacyPassword, ...safeUser } = user
   response.json({ item: safeUser })
 })
@@ -131,7 +159,13 @@ app.delete('/api/admin/users/:id', requirePermission('user.manage'), async (requ
   if (target.role === 'admin') return response.status(403).json({ message: '不能删除系统管理员' })
   getState().users = getState().users.filter((user) => user.id !== request.params.id)
   await persist()
-  await audit({ actor: request.actor.username, action: 'user.delete', target: 'user', targetId: request.params.id })
+  await audit({
+    actor: request.actor.username,
+    action: 'user.delete',
+    target: 'user',
+    targetId: request.params.id,
+    metadata: { username: target.username, displayName: target.displayName },
+  })
   response.json({ ok: true })
 })
 
@@ -153,7 +187,7 @@ app.delete('/api/admin/locks/:type/:id', async (request, response) => {
 app.put('/api/admin/content/:type/:id', requireContentWrite, async (request, response) => {
   const lock = getState().locks.find((item) => item.type === request.params.type && item.contentId === request.params.id)
   if (!lock || lock.userId !== request.actor.id || new Date(lock.expiresAt).getTime() <= Date.now()) return response.status(423).json({ message: '编辑锁已失效，请重新打开编辑' })
-  const assetError = validateAssetChanges(getItem(request.params.type, request.params.id), request.body || {}, request.actor)
+  const assetError = validateAssetChanges(getItem(request.params.type, request.params.id), request.body || {}, request.actor, request.params.type)
   if (assetError) return response.status(403).json({ message: assetError })
   if (request.params.type === 'video') {
     try {
@@ -163,7 +197,13 @@ app.put('/api/admin/content/:type/:id', requireContentWrite, async (request, res
   }
   const item = await saveItem(request.params.type, request.params.id, request.body, request.actor, request.body?.changeSummary || '更新内容')
   getState().locks = getState().locks.filter((item) => !(item.type === request.params.type && item.contentId === request.params.id))
-  await audit({ actor: request.actor.username, action: 'content.save', target: request.params.type, targetId: request.params.id })
+  await audit({
+    actor: request.actor.username,
+    action: 'content.save',
+    target: request.params.type,
+    targetId: request.params.id,
+    metadata: { title: item.title || item.artistName || item.id, changeSummary: request.body?.changeSummary || '更新内容' },
+  })
   response.json({ item })
 })
 
@@ -173,7 +213,13 @@ app.delete('/api/admin/content/:type/:id', requireContentWrite, async (request, 
   const item = await deleteItem(request.params.type, request.params.id, request.actor)
   if (!item) return response.status(404).json({ message: '内容不存在' })
   getState().locks = getState().locks.filter((item) => !(item.type === request.params.type && item.contentId === request.params.id))
-  await audit({ actor: request.actor.username, action: 'content.delete', target: request.params.type, targetId: request.params.id })
+  await audit({
+    actor: request.actor.username,
+    action: 'content.delete',
+    target: request.params.type,
+    targetId: request.params.id,
+    metadata: { title: item.title || item.artistName || item.id },
+  })
   response.json({ item })
 })
 
@@ -184,16 +230,24 @@ app.post('/api/admin/content/:type/:id/restore/:versionId', requireContentWrite,
   if (!lock || lock.userId !== request.actor.id || new Date(lock.expiresAt).getTime() <= Date.now()) return response.status(423).json({ message: '请先获得该内容的编辑锁' })
   const snapshot = getSnapshot(request.params.type, request.params.id, request.params.versionId)
   if (!snapshot) return response.status(404).json({ message: '历史版本不存在' })
-  const assetError = validateAssetChanges(getItem(request.params.type, request.params.id), snapshot, request.actor)
+  const assetError = validateAssetChanges(getItem(request.params.type, request.params.id), snapshot, request.actor, request.params.type)
   if (assetError) return response.status(403).json({ message: assetError })
   const item = await restoreItem(request.params.type, request.params.id, request.params.versionId, request.actor)
   getState().locks = getState().locks.filter((item) => !(item.type === request.params.type && item.contentId === request.params.id))
-  await audit({ actor: request.actor.username, action: 'content.restore', target: request.params.type, targetId: request.params.id, versionId: request.params.versionId })
+  await audit({
+    actor: request.actor.username,
+    action: 'content.restore',
+    target: request.params.type,
+    targetId: request.params.id,
+    versionId: request.params.versionId,
+    metadata: { title: item.title || item.artistName || item.id },
+  })
   response.json({ item })
 })
 
 app.post('/api/admin/upload', requireUploadPermission, upload.single('file'), async (request, response) => {
   if (!request.file) return response.status(400).json({ message: '缺少文件' })
+  request.file.originalname = decodeMultipartFilename(request.file.originalname)
   const category = request.query.category
   const prepared = await prepareUpload(request.file, category)
   if (!prepared.ok) return response.status(400).json({ message: prepared.message })
@@ -202,8 +256,15 @@ app.post('/api/admin/upload', requireUploadPermission, upload.single('file'), as
   let stillAllowed = false
   requireUploadPermission({ actor, query: request.query }, response, () => { stillAllowed = true })
   if (!stillAllowed) return
-  const result = prepared.result || await saveUpload(prepared, category)
-  await audit({ actor: request.actor.username, action: prepared.result ? 'asset.import' : 'asset.upload', target: category, targetId: result.url || category })
+  const saved = prepared.result || await saveUpload(prepared, category)
+  const result = prepared.result ? { ...prepared.result, metadata: prepared.result.metadata || null } : { ...saved, metadata: prepared.metadata || null }
+  await audit({
+    actor: request.actor.username,
+    action: prepared.result ? 'asset.import' : 'asset.upload',
+    target: category,
+    targetId: result.url || category,
+    metadata: { category, fileName: request.file.originalname, url: result.url || '', imported: Boolean(prepared.result) },
+  })
   response.status(201).json(result)
 })
 
@@ -219,4 +280,8 @@ await initStore()
 if (process.env.NODE_ENV === 'production' && (!process.env.ADMIN_JWT_SECRET || process.env.ADMIN_JWT_SECRET.length < 32)) {
   throw new Error('生产环境必须配置长度至少 32 位的 ADMIN_JWT_SECRET')
 }
-app.listen(port, () => console.log(`[artist-wiki] server listening on http://localhost:${port}`))
+const auditCleanupTimer = setInterval(() => {
+  cleanupAuditLogs().catch((error) => console.error('[artist-wiki] audit cleanup failed', error))
+}, 24 * 60 * 60 * 1000)
+auditCleanupTimer.unref()
+app.listen(port, () => console.log(`[artist-wiki] server listening on http://localhost:${port}; audit retention ${getAuditRetentionDays()} days`))

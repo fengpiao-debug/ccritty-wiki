@@ -2,7 +2,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { validateUpload } from './services/uploadValidation.js'
-import { prepareUpload } from './services/uploadService.js'
+import { decodeMultipartFilename, prepareUpload } from './services/uploadService.js'
 import { requireUploadPermission } from './middleware/uploadPermission.js'
 import { validateAssetChanges } from './services/contentAssetPermissions.js'
 import { parseBilibili } from '@artist-wiki/content-types'
@@ -15,6 +15,11 @@ test('rejects a double-extension executable disguised as an image', () => {
     buffer: Buffer.from([0xff, 0xd8, 0xff]),
   }, 'image')
   assert.equal(result.ok, false)
+})
+
+test('repairs UTF-8 multipart filenames decoded as latin1', () => {
+  assert.equal(decodeMultipartFilename('è½®å›žä¹‹å¢ƒ.mp3'), '轮回之境.mp3')
+  assert.equal(decodeMultipartFilename('CRITTY.mp3'), 'CRITTY.mp3')
 })
 
 test('rejects a text payload renamed as jpg', () => {
@@ -69,8 +74,24 @@ test('rejects binary, invalid UTF-8, empty, oversized and renamed executable tex
 })
 
 test('lyrics imports require time tags and music permission', async () => {
-  assert.equal((await prepareUpload({ originalname: 'song.lrc', mimetype: 'application/octet-stream', buffer: Buffer.from('[00:01.20]测试歌词') }, 'lyrics')).ok, true)
+  const result = await prepareUpload({
+    originalname: 'CRITTY - 轮回之境.lrc',
+    mimetype: 'application/octet-stream',
+    buffer: Buffer.from('[ti:轮回之境]\n[ar:CRITTY]\n[al:单曲]\n[00:01.20]测试歌词'),
+  }, 'lyrics')
+  assert.equal(result.ok, true)
+  assert.deepEqual(result.result.metadata, { title: '轮回之境', artist: 'CRITTY', album: '单曲', releasedAt: '' })
   assert.equal(validateUpload({ originalname: 'song.lrc', mimetype: 'text/plain', buffer: Buffer.from('没有时间标签') }, 'lyrics').ok, false)
+})
+
+test('audio imports recognize artist and title from a tagged filename when audio tags are absent', async () => {
+  const result = await prepareUpload({
+    originalname: 'CRITTY - 轮回之境.mp3',
+    mimetype: 'audio/mpeg',
+    buffer: Buffer.from('ID3\x04\x00\x00\x00\x00\x00\x00'),
+  }, 'audio')
+  assert.equal(result.ok, true)
+  assert.deepEqual(result.metadata, { title: '轮回之境', artist: 'CRITTY', extension: '.mp3' })
 })
 
 test('rejects local video files instead of treating music permission as video permission', () => {
@@ -92,7 +113,7 @@ test('Bilibili information imports normalize allowlisted embeds', async () => {
 })
 
 test('upload permission matrix permits only matching writers; read-only and admin cannot upload', () => {
-  const permissionFor = { image: 'image.write', audio: 'music.write', text: 'text.write', lyrics: 'music.write', video: 'video.write' }
+  const permissionFor = { image: 'image.write', cover: 'music.write', audio: 'music.write', text: 'text.write', lyrics: 'music.write', video: 'video.write' }
   const roles = [
     { role: 'admin', permissions: ['*', 'image.write', 'text.write', 'music.write', 'video.write'] },
     ...['text', 'image', 'music', 'video'].flatMap((scope) => [
@@ -112,7 +133,8 @@ test('upload permission matrix permits only matching writers; read-only and admi
 
 test('direct cover edits cannot bypass image permission', () => {
   const musicEditor = { role: 'editor', permissions: ['music.read', 'music.write'] }
-  assert.equal(validateAssetChanges({ cover: '/old.png' }, { cover: '/old.png' }, musicEditor), '')
-  assert.notEqual(validateAssetChanges({ cover: '/old.png' }, { cover: '/new.png' }, musicEditor), '')
+  assert.equal(validateAssetChanges({ cover: '/old.png' }, { cover: '/new.png' }, musicEditor, 'song'), '')
+  assert.notEqual(validateAssetChanges({ cover: '/old.png' }, { cover: '/new.png' }, musicEditor, 'photo'), '')
+  assert.notEqual(validateAssetChanges({}, { heroImage: '/new.png' }, musicEditor, 'song'), '')
   assert.equal(validateAssetChanges({}, { cover: '/new.png' }, { role: 'editor', permissions: ['image.write'] }), '')
 })

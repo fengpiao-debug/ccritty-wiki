@@ -1,6 +1,6 @@
 // 文件作用：apps/web/src/components/AdminLayout.jsx，负责可复用的 React UI 组件。
 import { Link, NavLink } from 'react-router-dom'
-import { ExternalLink, LogOut, Menu, ShieldCheck, Users, X } from 'lucide-react'
+import { ClipboardList, ExternalLink, LogOut, Menu, ShieldCheck, Users, X } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../features/auth/AuthContext'
 import { LoginPanel } from '../features/admin/LoginPanel'
@@ -21,7 +21,10 @@ export function AdminLayout({ children }) {
         <Link className="cms-brand" to="/admin"><span><ShieldCheck size={23} /></span><div>ARTIST WIKI<small>管理控制台</small></div></Link>
         <div className="cms-nav-caption">{admin ? '系统管理' : '内容工作台'}</div>
         <nav aria-label="后台导航" onClick={() => setMenuOpen(false)}>
-          {admin && <NavLink to="/admin/users" className={navClass}><Users size={18} />账号与权限</NavLink>}
+          {admin && <>
+            <NavLink to="/admin/users" className={navClass}><Users size={18} />账号与权限</NavLink>
+            <NavLink to="/admin/logs" className={navClass}><ClipboardList size={18} />操作日志</NavLink>
+          </>}
           {!admin && adminModules.filter((item) => auth.can(`${item.scope}.read`)).map(({ type, label, icon: Icon }) =>
             <NavLink key={type} to={`/admin/content/${type}`} className={navClass}><Icon size={18} />{label}</NavLink>)}
         </nav>

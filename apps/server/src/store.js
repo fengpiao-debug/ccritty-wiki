@@ -4,6 +4,7 @@ import crypto from 'node:crypto'
 import { hashPassword } from './auth.js'
 
 const database = process.env.MYSQL_DATABASE || 'artist_wiki'
+const auditRetentionDays = Math.max(1, Number(process.env.AUDIT_RETENTION_DAYS || 15))
 const pool = mysql.createPool({
   host: process.env.MYSQL_HOST || '127.0.0.1',
   port: Number(process.env.MYSQL_PORT || 3306),
@@ -169,6 +170,15 @@ async function loadState() {
   }
 }
 
+function pruneAuditState() {
+  const cutoff = Date.now() - auditRetentionDays * 24 * 60 * 60 * 1000
+  const before = state.audit.length
+  state.audit = state.audit
+    .filter((item) => new Date(item.createdAt).getTime() >= cutoff)
+    .slice(0, 500)
+  return state.audit.length !== before
+}
+
 export async function initStore() {
   await createDatabase()
   await createTables()
@@ -176,10 +186,12 @@ export async function initStore() {
   // 收窄已有管理员的历史全权限，不修改账号、密码或业务内容。
   await pool.query('UPDATE admin_users SET permissions_json = ? WHERE role = ?', [JSON.stringify(['user.manage']), 'admin'])
   await loadState()
+  await cleanupAuditLogs()
   return state
 }
 
 export async function persist() {
+  pruneAuditState()
   const connection = await pool.getConnection()
   try {
     await connection.beginTransaction()
@@ -231,8 +243,22 @@ export { nextId }
 
 export async function audit(entry) {
   state.audit.unshift({ id: nextId('audit'), createdAt: new Date().toISOString(), ...entry })
-  state.audit = state.audit.slice(0, 500)
   await persist()
+}
+
+export async function cleanupAuditLogs() {
+  const changed = pruneAuditState()
+  const cutoff = new Date(Date.now() - auditRetentionDays * 24 * 60 * 60 * 1000)
+  const sqlCutoff = cutoff.toISOString().slice(0, 19).replace('T', ' ')
+  await pool.query(
+    'DELETE FROM audit_logs WHERE created_at < ?',
+    [sqlCutoff],
+  )
+  if (changed) await persist()
+}
+
+export function getAuditRetentionDays() {
+  return auditRetentionDays
 }
 
 export async function closeStore() {

@@ -39,6 +39,7 @@ export const contentApi = {
   unlock: (type, id) =>
     apiRequest(`/admin/locks/${type}/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   users: () => apiRequest('/admin/users'),
+  auditLogs: () => apiRequest('/admin/audit-logs'),
   createUser: (body) => apiRequest('/admin/users', { method: 'POST', body: JSON.stringify(body) }),
   updateUser: (id, body) =>
     apiRequest(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(body) }),

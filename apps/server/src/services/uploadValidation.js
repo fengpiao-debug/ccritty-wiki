@@ -40,7 +40,7 @@ function matchesMagic(buffer, extension) {
 }
 
 export function validateUpload(file, inputCategory) {
-  const category = inputCategory === 'music' ? 'audio' : inputCategory
+  const category = inputCategory === 'music' ? 'audio' : inputCategory === 'cover' ? 'image' : inputCategory
   const buffer = file?.buffer
   if (!Buffer.isBuffer(buffer)) return { ok: false, message: '缺少文件内容' }
   const error = validateUploadMetadata({ name: file.originalname, size: buffer.length }, category)

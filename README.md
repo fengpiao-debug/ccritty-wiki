@@ -34,6 +34,7 @@ MYSQL_PASSWORD=root
 MYSQL_DATABASE=artist_wiki
 ADMIN_PASSWORD=admin123456
 ADMIN_JWT_SECRET=artist-wiki-change-me
+AUDIT_RETENTION_DAYS=15
 ```
 
-服务启动时会自动创建数据库、内容表、用户表、版本表、编辑锁表和审计日志表。
+服务启动时会自动创建数据库、内容表、用户表、版本表、编辑锁表和审计日志表。管理员进入后台的“操作日志”可以查看账号、内容和上传操作；日志默认保留 15 天，服务启动时和运行期间每日自动清理。
