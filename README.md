@@ -17,7 +17,7 @@ npm run dev
 
 ```text
 账号：admin
-密码：admin123456
+密码：password
 ```
 
 生产环境请设置 `ADMIN_JWT_SECRET`，并替换默认管理员密码。当前后端使用 MySQL 持久化。
@@ -31,9 +31,9 @@ MYSQL_HOST=127.0.0.1
 MYSQL_PORT=3306
 MYSQL_USER=root
 MYSQL_PASSWORD=root
-MYSQL_DATABASE=artist_wiki
-ADMIN_PASSWORD=admin123456
-ADMIN_JWT_SECRET=artist-wiki-change-me
+MYSQL_DATABASE=wiki
+ADMIN_PASSWORD=password
+ADMIN_JWT_SECRET=artist
 AUDIT_RETENTION_DAYS=15
 ```
 
