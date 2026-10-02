@@ -6,6 +6,7 @@ export const demoContent = {
     title: '歌手简介',
     artistName: 'Critty熙影',
     subtitle: 'Singer · Composer',
+    biographyTitle: '锦书',
     heroImage: '',
     markdown:
       'Critty熙影，中国内地女歌手、音乐人。\\n\\n她的作品常以古典意象和现代编曲交织，形成细腻而有辨识度的声音。这里记录她的音乐、舞台、影像与行程。',

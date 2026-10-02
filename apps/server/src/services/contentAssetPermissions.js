@@ -7,12 +7,12 @@ export function validateAssetChanges(previous, payload, actor, type = '') {
     profile: ['heroImage'],
     news: ['cover'],
     event: ['cover'],
-    photo: ['url'],
+    photo: ['url', 'images', 'coverImageId'],
     song: ['cover'],
     video: ['cover'],
   }[type] || []
-  for (const key of ['cover', 'coverUrl', 'heroImage', 'url']) {
-    if (Object.hasOwn(payload, key) && (payload[key] || '') !== (previous?.[key] || '')) {
+  for (const key of ['cover', 'coverUrl', 'heroImage', 'url', 'images', 'coverImageId']) {
+    if (Object.hasOwn(payload, key) && JSON.stringify(payload[key] || '') !== JSON.stringify(previous?.[key] || '')) {
       if (!allowedFields.includes(key)) return '图片字段与内容类型不匹配'
       if (canWriteImage(permissions, type)) continue
       return type === 'song'

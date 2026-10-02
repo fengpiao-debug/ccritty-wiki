@@ -16,7 +16,7 @@ vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({ session: fixture.user, loading: false, logout: vi.fn(), can: (permission) => can(permissionsForUser(fixture.user), permission) }),
 }))
 vi.mock('../../lib/api', () => ({
-  contentApi: { users: vi.fn(), createUser: vi.fn(), updateUser: vi.fn(), deleteUser: vi.fn(), getAdminContent: vi.fn(), imageAssets: vi.fn(), updateImageAsset: vi.fn(), lock: vi.fn(), unlock: vi.fn() },
+  contentApi: { users: vi.fn(), createUser: vi.fn(), updateUser: vi.fn(), deleteUser: vi.fn(), getAdminContent: vi.fn(), getAdminSiteSettings: vi.fn(), imageAssets: vi.fn(), updateImageAsset: vi.fn(), lock: vi.fn(), unlock: vi.fn() },
 }))
 vi.mock('./uploadApi', () => ({ uploadFile: vi.fn() }))
 import { uploadFile } from './uploadApi'
@@ -29,6 +29,7 @@ beforeEach(() => {
   fixture.user = admin
   vi.clearAllMocks()
   contentApi.users.mockResolvedValue({ items: [admin, editor] })
+  contentApi.getAdminSiteSettings.mockResolvedValue({ settings: {} })
   contentApi.getAdminContent.mockResolvedValue({ profile: { id: 'profile', artistName: '测试歌手' }, news: [{ id: 'news-1', title: '测试动态' }], events: [] })
   contentApi.createUser.mockResolvedValue({})
   contentApi.updateUser.mockResolvedValue({})
@@ -41,6 +42,17 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('后台职责与交互', () => {
+  it('管理员可以进入网站设置，编辑者不能访问设置页面', async () => {
+    const view = mount('/admin/settings')
+    expect(await screen.findByRole('heading', { name: '网站设置' })).toBeTruthy()
+    await waitFor(() => expect(contentApi.getAdminSiteSettings).toHaveBeenCalledTimes(1))
+    view.unmount()
+    fixture.user = editor
+    mount('/admin/settings')
+    expect(await screen.findByRole('heading', { name: '歌手简介', exact: true })).toBeTruthy()
+    expect(screen.queryByRole('link', { name: '网站设置' })).toBeNull()
+    expect(contentApi.getAdminSiteSettings).toHaveBeenCalledTimes(1)
+  })
   it('管理员默认进入账号表，不请求内容接口，不显示内容导航', async () => {
     mount()
     expect(await screen.findByRole('heading', { name: '账号与权限', exact: true })).toBeTruthy()
@@ -78,7 +90,7 @@ describe('后台职责与交互', () => {
     const uploadZone = screen.getByRole('group', { name: '上传测试歌曲图片' })
     fireEvent.drop(uploadZone, { dataTransfer: { files: [new File(['image'], 'cover.png', { type: 'image/png' })] } })
     await waitFor(() => expect(contentApi.updateImageAsset).toHaveBeenCalledWith('song', 'song-1', '/uploads/images/new-cover.png'))
-    expect(uploadFile).toHaveBeenCalledWith(expect.any(File), 'image', expect.any(Object))
+    expect(uploadFile).toHaveBeenCalledWith(expect.any(File), 'cover', expect.any(Object))
     expect(contentApi.getAdminContent).not.toHaveBeenCalled()
   })
   it('图片只读账号可以查看素材但不能编辑或上传', async () => {

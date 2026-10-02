@@ -4,20 +4,24 @@ import cors from 'cors'
 import multer from 'multer'
 import path from 'node:path'
 import { authRequired, hashPassword, issueToken, verifyPassword } from './auth.js'
-import { audit, cleanupAuditLogs, getAuditRetentionDays, getState, initStore, nextId, persist } from './store.js'
+import { audit, cleanupAuditLogs, getAuditRetentionDays, getSiteSettings, getState, initStore, nextId, persist, saveSiteSettings } from './store.js'
 import { hydrateUser, requireContentRead, requireContentWrite, requirePermission } from './middleware/permissions.js'
 import { can, permissionsForUser } from '@artist-wiki/permissions'
 import { validateUserInput } from './services/userValidation.js'
 import { deleteItem, getItem, getSnapshot, listContent, listVersions, restoreItem, saveItem } from './services/contentService.js'
 import { decodeMultipartFilename, prepareUpload, saveUpload } from './services/uploadService.js'
 import { requireUploadPermission } from './middleware/uploadPermission.js'
-import { parseBilibili } from '@artist-wiki/content-types'
+import { parseBilibili, publicPhotoAlbum, validateMediaMetadata } from '@artist-wiki/content-types'
 import { validateAssetChanges } from './services/contentAssetPermissions.js'
 import { listImageAssets, updateImageAsset } from './services/imageAssetService.js'
+import { preparePhotoAlbum } from './services/photoAlbumService.js'
 import { BilibiliMetadataError, resolveBilibiliMetadata } from './services/bilibiliMetadataService.js'
+import { createSiteSettingsRouter } from './routes/siteSettings.js'
 
 const app = express()
 const port = Number(process.env.PORT || 3007)
+const host = process.env.HOST || '0.0.0.0'
+if (process.env.TRUST_PROXY === 'loopback') app.set('trust proxy', 'loopback')
 const upload = multer({
   storage: multer.memoryStorage(),
   defParamCharset: 'utf8',
@@ -53,6 +57,7 @@ app.get('/api/content', (_request, response) => {
   for (const [key, value] of Object.entries(content)) {
     if (Array.isArray(value)) content[key] = value.filter((item) => !item.deletedAt)
   }
+  content.photos = (content.photos || []).map(publicPhotoAlbum)
   response.json(content)
 })
 
@@ -88,6 +93,7 @@ app.get('/api/auth/me', authRequired, hydrateUser, (request, response) => {
 })
 
 app.use('/api/admin', authRequired, hydrateUser)
+app.use('/api', createSiteSettingsRouter({ read: getSiteSettings, save: saveSiteSettings, audit }))
 app.get('/api/admin/content', (request, response) => {
   const scopes = { profile: 'text', news: 'text', events: 'text', photos: 'image', songs: 'music', videos: 'video' }
   const allowed = Object.entries(listContent()).filter(([key]) => can(request.actor.permissions, `${scopes[key]}.read`))
@@ -211,11 +217,20 @@ app.put('/api/admin/content/:type/:id', requireContentWrite, async (request, res
   if (!lock || lock.userId !== request.actor.id || new Date(lock.expiresAt).getTime() <= Date.now()) return response.status(423).json({ message: '编辑锁已失效，请重新打开编辑' })
   const assetError = validateAssetChanges(getItem(request.params.type, request.params.id), request.body || {}, request.actor, request.params.type)
   if (assetError) return response.status(403).json({ message: assetError })
+  if (request.params.type === 'photo') {
+    const draft = { ...getItem('photo', request.params.id), ...request.body }
+    try { request.body = preparePhotoAlbum(draft) }
+    catch (error) { return response.status(400).json({ message: error.message }) }
+  }
   if (request.params.type === 'video') {
     try {
       const source = request.body?.embedUrl || request.body?.bvid
       if (source) Object.assign(request.body, parseBilibili(source))
     } catch (error) { return response.status(400).json({ message: error.message }) }
+  }
+  if (['song', 'video'].includes(request.params.type)) {
+    const invalid = validateMediaMetadata(request.params.type, request.body || {})
+    if (invalid) return response.status(400).json({ message: invalid })
   }
   const item = await saveItem(request.params.type, request.params.id, request.body, request.actor, request.body?.changeSummary || '更新内容')
   getState().locks = getState().locks.filter((item) => !(item.type === request.params.type && item.contentId === request.params.id))
@@ -306,4 +321,4 @@ const auditCleanupTimer = setInterval(() => {
   cleanupAuditLogs().catch((error) => console.error('[artist-wiki] audit cleanup failed', error))
 }, 24 * 60 * 60 * 1000)
 auditCleanupTimer.unref()
-app.listen(port, () => console.log(`[artist-wiki] server listening on http://localhost:${port}; audit retention ${getAuditRetentionDays()} days`))
+app.listen(port, host, () => console.log(`[artist-wiki] server listening on http://${host}:${port}; audit retention ${getAuditRetentionDays()} days`))

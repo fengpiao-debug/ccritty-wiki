@@ -2,6 +2,7 @@
 import mysql from 'mysql2/promise'
 import crypto from 'node:crypto'
 import { hashPassword } from './auth.js'
+import { DEFAULT_SITE_SETTINGS } from '@artist-wiki/content-types'
 
 const database = process.env.MYSQL_DATABASE || 'artist_wiki'
 const auditRetentionDays = Math.max(1, Number(process.env.AUDIT_RETENTION_DAYS || 15))
@@ -22,6 +23,7 @@ const defaultContent = {
     type: 'profile',
     artistName: 'Critty熙影',
     subtitle: 'Singer · Composer',
+    biographyTitle: '锦书',
     heroImage: '',
     markdown: 'Critty熙影，中国内地女歌手、音乐人。\\n\\n她的作品常以古典意象和现代编曲交织，形成细腻而有辨识度的声音。',
   },
@@ -108,7 +110,7 @@ async function createTables() {
 }
 
 async function seedDefaults() {
-  const [contentRows] = await pool.query('SELECT content_key FROM site_content LIMIT 1')
+  const [contentRows] = await pool.query('SELECT content_key FROM site_content WHERE content_key = ? LIMIT 1', ['site'])
   if (!contentRows.length) {
     await pool.query('INSERT INTO site_content (content_key, content_json) VALUES (?, ?)', ['site', JSON.stringify(defaultContent)])
   }
@@ -125,12 +127,14 @@ async function seedDefaults() {
 
 async function loadState() {
   const [contentRows] = await pool.query('SELECT content_json FROM site_content WHERE content_key = ? LIMIT 1', ['site'])
+  const [settingsRows] = await pool.query('SELECT content_json FROM site_content WHERE content_key = ? LIMIT 1', ['settings'])
   const [userRows] = await pool.query('SELECT id, username, display_name, role, permissions_json, password_hash, password_salt FROM admin_users')
   const [versionRows] = await pool.query('SELECT id, content_type, content_id, version_no, snapshot_json, change_summary, created_by, created_at FROM content_versions ORDER BY created_at DESC')
   const [lockRows] = await pool.query('SELECT content_type, content_id, user_id, username, expires_at FROM content_locks')
   const [auditRows] = await pool.query('SELECT id, actor, action, target, target_id, metadata_json, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 500')
 
   state = {
+    settings: { ...DEFAULT_SITE_SETTINGS, ...(settingsRows[0] ? parseJson(settingsRows[0].content_json) : {}) },
     content: contentRows[0] ? parseJson(contentRows[0].content_json) : clone(defaultContent),
     users: userRows.map((row) => ({
       id: row.id,
@@ -238,6 +242,17 @@ export async function persist() {
 }
 
 export function getState() { return state }
+export function getSiteSettings() { return clone(state.settings) }
+
+export async function saveSiteSettings(settings) {
+  // 独立持久化公共设置，避免和歌手内容的保存互相覆盖。
+  await pool.query(
+    'INSERT INTO site_content (content_key, content_json) VALUES (?, ?) ON DUPLICATE KEY UPDATE content_json = VALUES(content_json)',
+    ['settings', JSON.stringify(settings)],
+  )
+  state.settings = clone(settings)
+  return getSiteSettings()
+}
 export function cloneState(value) { return clone(value) }
 export { nextId }
 

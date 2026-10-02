@@ -24,7 +24,7 @@ export function VideoLinkField({ value, disabled, onParsed }) {
         ...result,
         title: details.title || current.title || '',
         description: details.description || current.description || '',
-        cover: auth.can('image.write') ? details.cover || current.cover || '' : current.cover || '',
+        cover: auth.can('image.video.write') ? details.cover || current.cover || '' : current.cover || '',
       }))
       setNotice(details.title ? `已识别：${details.title}` : `已识别 ${result.bvid}，B 站未返回标题`)
     } catch (cause) {

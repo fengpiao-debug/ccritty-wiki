@@ -5,6 +5,7 @@ import { contentApi } from '../../lib/api'
 
 const actionLabels = {
   'auth.login': '登录后台',
+  'settings.save': '保存网站设置',
   'user.create': '创建账号',
   'user.update': '修改账号权限',
   'user.delete': '删除账号',
@@ -15,6 +16,7 @@ const actionLabels = {
   'asset.import': '导入资源',
 }
 const targetLabels = {
+  settings: '网站设置',
   user: '账号',
   profile: '歌手简介',
   news: '动态',

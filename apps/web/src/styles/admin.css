@@ -112,6 +112,9 @@
 .cms-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 17px 20px; }
 .cms-form-grid label, .cms-summary-field { display: grid; gap: 7px; font-size: 12px; }
 .cms-form-grid .full { grid-column: 1 / -1; }
+.cms-settings-form fieldset { display: grid; gap: 24px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.cms-settings-form .cms-muted { margin: 0; line-height: 1.8; }
+.cms-settings-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
 .cms-summary-field { margin-top: 20px; }
 .cms-permissions { margin-top: 25px; }
 .cms-permissions h3, .cms-version-preview h3 { font-size: 14px; font-weight: 600; margin: 0 0 14px; }
@@ -285,3 +288,29 @@ p.cms-upload-success { margin: 10px 0 0; font-size: 12px; }
 .cms-upload-progress progress { accent-color: var(--red); }
 .cms-upload-success { color: var(--teal); }
 .cms-asset-preview img { border-color: var(--line); }
+
+/* 图集表单与多图管理。 */
+.cms-album-section { margin: 28px 0 14px; }
+.cms-album-section h3 { font-size: 15px; margin: 0 0 8px; font-weight: 500; }
+.cms-album-section h3 span { margin-left: 8px; color: var(--red); font-size: 12px; }
+.cms-album-section p, .cms-album-progress, .cms-album-empty { color: var(--muted); font-size: 12px; line-height: 1.8; }
+.cms-form-grid .cms-album-checkbox { display: flex; align-items: center; flex-direction: row; gap: 8px; }
+.cms-album-checkbox input { width: 16px; height: 16px; }
+.cms-album-url { display: flex; align-items: end; gap: 12px; margin: 16px 0; }
+.cms-album-url label { flex: 1; min-width: 0; }
+.cms-album-editor label { display: flex; flex-direction: column; gap: 7px; font-size: 12px; }
+.cms-album-editor input:not([type=checkbox]), .cms-album-editor textarea, .cms-album-editor select { width: 100%; min-width: 0; }
+.cms-album-images { display: grid; gap: 16px; margin-top: 20px; }
+.cms-album-image { display: grid; grid-template-columns: 160px minmax(0, 1fr); align-items: start; gap: 18px; padding: 16px; border: 1px solid var(--line); background: rgba(255,255,255,.25); }
+.cms-album-thumb { position: relative; background: var(--paper-deep); min-height: 100px; }
+.cms-album-thumb img { display: block; width: 100%; height: 180px; object-fit: contain; }
+.cms-album-thumb > span { position: absolute; left: 6px; top: 6px; background: var(--red-deep); color: #fff8ef; font-size: 11px; padding: 4px 7px; border-radius: 3px; }
+.cms-album-image-fields { display: grid; gap: 12px; min-width: 0; }
+.cms-album-actions { display: flex; gap: 8px; align-items: center; }
+.cms-album-actions .cms-button { margin-right: auto; }
+.cms-album-list-title { display: flex; align-items: center; gap: 12px; }
+.cms-album-list-title img { width: 64px; height: 48px; object-fit: cover; border-radius: 3px; }
+@media (max-width: 600px) {
+  .cms-album-image { grid-template-columns: minmax(0, 1fr); }.cms-album-thumb img { height: 160px; }
+  .cms-album-url { flex-wrap: wrap; }.cms-album-url label { flex-basis: 100%; }
+}

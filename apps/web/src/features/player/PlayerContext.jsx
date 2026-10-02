@@ -9,6 +9,9 @@ export function PlayerProvider({ children }) {
   const { content } = useContent()
   const [queue, setQueue] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [playbackRequest, setPlaybackRequest] = useState(null)
+  const requestSequence = useRef(0)
+  const queueSelection = useRef(null)
   const [state, setState] = useState({
     isPlaying: false,
     isLoading: false,
@@ -20,7 +23,8 @@ export function PlayerProvider({ children }) {
   const controllerRef = useRef(null)
 
   useEffect(() => {
-    const playable = (content.songs || []).filter((song) => song.audioUrl)
+    const available = (content.songs || []).filter((song) => song.audioUrl)
+    const playable = queueSelection.current ? queueSelection.current.map((id) => available.find((song) => song.id === id)).filter(Boolean) : available
     setQueue(playable)
     setCurrentIndex((index) => Math.min(index, Math.max(playable.length - 1, 0)))
   }, [content.songs])
@@ -59,6 +63,17 @@ export function PlayerProvider({ children }) {
     controllerRef.current?.play()
   }
 
+  function playSongs(songs, startId) {
+    const playable = songs.filter((song) => song.audioUrl)
+    if (!playable.length) return
+    const index = Math.max(0, playable.findIndex((song) => song.id === startId))
+    queueSelection.current = playable.map((song) => song.id)
+    setQueue(playable)
+    setCurrentIndex(index)
+    setPlaybackRequest({ id: ++requestSequence.current, index })
+  }
+  const acknowledgePlayback = useCallback((id) => setPlaybackRequest((request) => request?.id === id ? null : request), [])
+
   function toggle() {
     if (!currentSong) return
     controllerRef.current?.togglePlay()
@@ -91,6 +106,9 @@ export function PlayerProvider({ children }) {
     lyricIndex,
     state,
     playAt,
+    playSongs,
+    playbackRequest,
+    acknowledgePlayback,
     toggle,
     next,
     previous,

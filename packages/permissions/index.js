@@ -30,7 +30,7 @@ export function can(permissions = [], permission) {
   return permissions.includes(permission)
 }
 
-// 管理身份与内容身份互斥；即使历史记录残留 * 或内容权限，管理员也只能管理账号。
+// 管理身份与内容身份互斥；管理员仅管理账号及网站设置，不拥有歌手内容编辑权限。
 export function permissionsForUser(user) {
   if (!user) return []
   if (user.role === 'admin') return ['user.manage']

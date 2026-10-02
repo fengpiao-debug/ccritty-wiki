@@ -7,7 +7,7 @@ import { usePlayer } from './PlayerContext'
 import { LyricsPanel } from './LyricsPanel'
 import { PlaylistPanel } from './PlaylistPanel'
 
-export function PlayerDrawer() {
+export function PlayerDrawer({ collapsed = false }) {
   const player = usePlayer()
   const volume = useAudioPlayerVolume()
   const [open, setOpen] = useState(false)
@@ -15,14 +15,17 @@ export function PlayerDrawer() {
   const triggerRef = useRef(null)
   const closeRef = useRef(null)
   useEffect(() => {
-    if (!open) return undefined
+    if (collapsed) setOpen(false)
+  }, [collapsed])
+  useEffect(() => {
+    if (!open || collapsed) return undefined
     closeRef.current?.focus()
     const escape = (event) => {
       if (event.key === 'Escape') { setOpen(false); triggerRef.current?.focus() }
     }
     document.addEventListener('keydown', escape)
     return () => document.removeEventListener('keydown', escape)
-  }, [open])
+  }, [open, collapsed])
 
   return (
     <div className="player-drawer-control">

@@ -1,0 +1,24 @@
+[Unit]
+Description=Artist Wiki API
+After=network.target mysqld.service
+Wants=mysqld.service
+
+[Service]
+Type=simple
+User=artist-wiki
+Group=artist-wiki
+WorkingDirectory=/opt/artist-wiki/current/apps/server
+EnvironmentFile=/etc/artist-wiki.env
+ExecStart=/opt/artist-wiki/runtime/bin/node src/server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/artist-wiki/shared/uploads
+
+[Install]
+WantedBy=multi-user.target

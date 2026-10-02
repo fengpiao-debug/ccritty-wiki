@@ -4,9 +4,10 @@ import { Save } from 'lucide-react'
 import { contentApi } from '../../lib/api'
 import { AdminDialog } from './AdminDialog'
 import { ContentFields } from './ContentFields'
+import { normalizePhotoAlbum, validatePhotoAlbum, validateMediaMetadata } from '@artist-wiki/content-types'
 
 export function ContentEditorDialog({ item, module, canWrite, onClose, onSaved }) {
-  const [draft, setDraft] = useState(item)
+  const [draft, setDraft] = useState(() => module.type === 'photo' ? normalizePhotoAlbum(item) : item)
   const [locked, setLocked] = useState(false)
   const [loading, setLoading] = useState(canWrite)
   const [busy, setBusy] = useState(false)
@@ -35,6 +36,14 @@ export function ContentEditorDialog({ item, module, canWrite, onClose, onSaved }
   async function save(event) {
     event.preventDefault()
     if (uploadCount || busy || !locked) return
+    if (module.type === 'photo') {
+      const invalid = validatePhotoAlbum(draft)
+      if (invalid) { setError(invalid); return }
+    }
+    if (['song', 'video'].includes(module.type)) {
+      const invalid = validateMediaMetadata(module.type, draft)
+      if (invalid) { setError(invalid); return }
+    }
     setBusy(true); setError('')
     try { await contentApi.saveContent(module.type, item.id, draft); ownsLock.current = false; onSaved() }
     catch (err) { setError(err.message); if (err.status === 423 || err.status === 403) setLocked(false) }

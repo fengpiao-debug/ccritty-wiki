@@ -9,6 +9,7 @@ import { GalleryPage } from './features/public/GalleryPage'
 import { MusicPage } from './features/public/MusicPage'
 import { VideoPage } from './features/public/VideoPage'
 import { AdminDashboard } from './features/admin/AdminDashboard'
+import { AboutPage } from './features/public/AboutPage'
 
 export function App() {
   return (
@@ -20,6 +21,7 @@ export function App() {
         <Route path="/gallery" element={<GalleryPage />} />
         <Route path="/music" element={<MusicPage />} />
         <Route path="/videos" element={<VideoPage />} />
+        <Route path="/about" element={<AboutPage />} />
       </Route>
       <Route path="/admin/*" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
       <Route path="*" element={<Navigate to="/" replace />} />

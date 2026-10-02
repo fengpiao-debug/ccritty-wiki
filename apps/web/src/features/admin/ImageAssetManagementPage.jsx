@@ -4,6 +4,7 @@ import { RefreshCw, Save } from 'lucide-react'
 import { contentApi } from '../../lib/api'
 import { useAuth } from '../auth/AuthContext'
 import { UploadDropzone } from './UploadDropzone'
+import { Link } from 'react-router-dom'
 
 const contentTypeLabels = { profile: '歌手简介', news: '动态', event: '活动', photo: '照片', song: '歌曲', video: '视频' }
 
@@ -30,7 +31,7 @@ function ImageAssetRow({ asset, editable, onSaved, onError }) {
   return <tr>
     <td><strong>{asset.title}</strong><small>{contentTypeLabels[asset.type]} · {asset.field}</small></td>
     <td>
-      {editable ? <div className="cms-image-asset-editor">
+      {asset.album ? <Link className="cms-link-button" to="/admin/content/photo">{asset.imageCount} 张照片 · 前往图集管理{editable ? '编辑图片与封面' : '查看'}</Link> : editable ? <div className="cms-image-asset-editor">
         <input aria-label={`${asset.title}图片地址`} value={url} disabled={saving}
           placeholder="粘贴图片 URL，或从右侧上传" onChange={(event) => setUrl(event.target.value)} />
         <button className="cms-icon" type="button" title="保存图片地址" aria-label={`保存 ${asset.title} 图片地址`} disabled={!changed || saving} onClick={() => save()}><Save size={16} /></button>

@@ -2,6 +2,8 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { Image, Library, CalendarDays, Newspaper, PlaySquare, UserRound } from 'lucide-react'
 import { useContent } from '../features/public/useContent'
+import { useSiteSettings } from '../features/public/useSiteSettings'
+import { PublicFooter } from './PublicFooter'
 
 const navItems = [
   ['/', '主卷', UserRound],
@@ -14,6 +16,7 @@ const navItems = [
 
 export function PublicLayout() {
   const { content } = useContent()
+  const siteSettings = useSiteSettings()
   const artistName = content.profile?.artistName || '歌手 Wiki'
 
   return (
@@ -36,8 +39,9 @@ export function PublicLayout() {
         </nav>
       </header>
       <main className="public-main">
-        <Outlet />
+        <Outlet context={siteSettings} />
       </main>
+      <PublicFooter settings={siteSettings.settings} />
     </div>
   )
 }

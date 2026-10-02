@@ -3,11 +3,20 @@ import { useContext, useEffect } from 'react'
 import { audioPlayerDispatchContext, useAudioPlayer, useAudioPlayerElement } from 'react-modern-audio-player'
 import { usePlayer } from './PlayerContext'
 
-export function PlayerStateBridge() {
+export function PlayerStateBridge({ expectedPlaylist }) {
   const audio = useAudioPlayer()
   const { audioEl } = useAudioPlayerElement()
   const dispatch = useContext(audioPlayerDispatchContext)
-  const { registerController, syncFromController, syncMediaStatus } = usePlayer()
+  const { registerController, syncFromController, syncMediaStatus, playbackRequest, acknowledgePlayback } = usePlayer()
+
+  useEffect(() => {
+    // 第三方引擎接收新队列后才选歌，避免索引指向旧专辑。
+    if (!playbackRequest || audio.playList.length !== expectedPlaylist.length || !audio.playList.every((track, index) => track.id === expectedPlaylist[index].id && track.src === expectedPlaylist[index].src)) return
+    audio.setTrack(playbackRequest.index)
+    dispatch({ type: 'SET_REPEAT_TYPE', repeatType: 'ALL' })
+    audio.play()
+    acknowledgePlayback(playbackRequest.id)
+  }, [audio, expectedPlaylist, playbackRequest, acknowledgePlayback, dispatch])
 
   useEffect(() => registerController({
     ...audio,

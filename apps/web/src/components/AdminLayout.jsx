@@ -1,6 +1,6 @@
 // 文件作用：apps/web/src/components/AdminLayout.jsx，负责可复用的 React UI 组件。
 import { Link, NavLink } from 'react-router-dom'
-import { ClipboardList, ExternalLink, Images, LogOut, Menu, ShieldCheck, Users, X } from 'lucide-react'
+import { ClipboardList, ExternalLink, Images, LogOut, Menu, Settings, ShieldCheck, Users, X } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../features/auth/AuthContext'
 import { LoginPanel } from '../features/admin/LoginPanel'
@@ -24,6 +24,7 @@ export function AdminLayout({ children }) {
           {admin && <>
             <NavLink to="/admin/users" className={navClass}><Users size={18} />账号与权限</NavLink>
             <NavLink to="/admin/logs" className={navClass}><ClipboardList size={18} />操作日志</NavLink>
+            <NavLink to="/admin/settings" className={navClass}><Settings size={18} />网站设置</NavLink>
           </>}
           {!admin && <>
             {(auth.can('image.read') || auth.can('image.song.read') || auth.can('image.video.read')) && <NavLink to="/admin/images" className={navClass}><Images size={18} />图片素材</NavLink>}

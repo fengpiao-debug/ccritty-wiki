@@ -32,6 +32,9 @@ async function resolveVideo(source) {
 
 export const contentApi = {
   getPublic: () => apiRequest('/content'),
+  getSiteSettings: () => apiRequest('/site-settings'),
+  getAdminSiteSettings: () => apiRequest('/admin/site-settings'),
+  saveSiteSettings: (body) => apiRequest('/admin/site-settings', { method: 'PUT', body: JSON.stringify(body) }),
   login: (body) => apiRequest('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
   me: () => apiRequest('/auth/me'),
   getAdminContent: () => apiRequest('/admin/content'),

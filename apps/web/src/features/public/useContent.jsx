@@ -12,19 +12,20 @@ export function useContent() {
   const [loading, setLoading] = useState(!cachedContent)
 
   useEffect(() => {
-    if (cachedContent) return
+    let active = true
     if (!loadingPromise) {
       loadingPromise = contentApi.getPublic()
         .then((payload) => {
           cachedContent = normalizeContent(payload)
           return cachedContent
         })
-        .catch(() => demoContent)
+        .catch(() => cachedContent || demoContent)
+        .finally(() => { loadingPromise = null })
     }
     loadingPromise.then((next) => {
-      setContent(next)
-      setLoading(false)
+      if (active) { setContent(next); setLoading(false) }
     })
+    return () => { active = false }
   }, [])
 
   return { content, loading }

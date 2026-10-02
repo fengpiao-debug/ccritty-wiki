@@ -5,7 +5,7 @@ export const adminModules = [
   { type: 'profile', key: 'profile', label: '歌手简介', scope: 'text', icon: BookOpen },
   { type: 'news', key: 'news', label: '动态管理', scope: 'text', icon: Newspaper },
   { type: 'event', key: 'events', label: '活动管理', scope: 'text', icon: CalendarDays },
-  { type: 'photo', key: 'photos', label: '照片管理', scope: 'image', icon: Image },
+  { type: 'photo', key: 'photos', label: '图集管理', scope: 'image', icon: Image },
   { type: 'song', key: 'songs', label: '歌曲管理', scope: 'music', icon: Music2 },
   { type: 'video', key: 'videos', label: '视频管理', scope: 'video', icon: Video },
 ]

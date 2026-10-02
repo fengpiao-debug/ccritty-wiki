@@ -42,6 +42,8 @@ export function listImageAssets(actor) {
         title: record.title || record.artistName || record.id,
         field: slot.field,
         label: slot.label,
+        album: type === 'photo' && Array.isArray(record.images),
+        imageCount: type === 'photo' ? record.images?.length || (record.url ? 1 : 0) : undefined,
         url: record[slot.field] || '',
       })
     }
@@ -60,6 +62,7 @@ export async function updateImageAsset(type, id, source, actor) {
     ? (content.profile?.id === id ? content.profile : null)
     : getItem(type, id)
   if (!item || item.deletedAt) return { status: 404, message: '图片所属内容不存在' }
+  if (type === 'photo' && Array.isArray(item.images)) return { status: 400, message: '请在图集管理中修改图片或选择封面' }
 
   const now = Date.now()
   getState().locks = getState().locks.filter((lock) => new Date(lock.expiresAt).getTime() > now)

@@ -9,6 +9,11 @@
   font: 13px/1.5 system-ui, sans-serif;
 }
 .modern-player-shell[hidden] { display: none; }
+.player-collapse-toggle { position: absolute; top: 50%; right: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; width: 32px; height: 32px; padding: 0; transform: translateY(-50%); border: 0; border-radius: 4px; color: #5f6974; background: transparent; }
+.player-collapse-toggle:hover { color: #ed414b; background: #fff1f2; }
+.player-collapse-toggle:focus-visible { outline: 2px solid #ed414b; outline-offset: 2px; }
+.player-collapse-toggle svg { flex-shrink: 0; }
+.modern-player-shell.is-collapsed { left: 16px; right: auto; width: 198px; transform: none; }
 .modern-player.rmap-player-provider[data-theme=light] {
   --rm-audio-player-interface-container: #fff;
   --rm-audio-player-progress-bar: #ed414b;
@@ -35,7 +40,7 @@
   grid-template-columns: 116px 44px minmax(80px, 1fr) 42px 42px 32px 32px 36px !important;
   grid-template-rows: 22px 20px;
   gap: 0 12px;
-  padding: 12px 18px;
+  padding: 12px 56px 12px 18px;
   border-radius: 6px;
 }
 .modern-player .rmap-interface-grid > * { min-width: 0; }
@@ -107,7 +112,7 @@
     grid-template-columns: 86px 30px minmax(0, 1fr) 32px !important;
     grid-template-rows: 22px 20px;
     gap: 0 8px;
-    padding: 10px;
+    padding: 10px 48px 10px 10px;
   }
   .modern-player .rmap-ctrl-btn-wrapper { gap: 6px; }
   .modern-player .styled-btn { width: 17px; }
@@ -129,3 +134,11 @@
   .player-drawer-body > .lyrics-panel { border: 0; }
   .tab-playlist .lyrics-panel, .tab-lyrics .player-drawer-body > :first-child { display: none; }
 }
+
+/* 折叠状态在桌面与手机均保留原生上一首、播放/暂停、下一首控件。 */
+.is-collapsed .modern-player .rmap-interface-grid { grid-template-columns: minmax(0, 1fr) !important; grid-template-rows: 42px; padding: 12px 50px 12px 18px; }
+.is-collapsed .modern-player .rmap-interface-grid > :not(:has(.rmap-ctrl-btn-wrapper)) { display: none; }
+.is-collapsed .modern-player .rmap-interface-grid > :has(.rmap-ctrl-btn-wrapper) { grid-area: 1 / 1 / 2 / 2 !important; }
+.is-collapsed .modern-player .rmap-ctrl-btn-wrapper { gap: 12px; justify-content: center; }
+.is-collapsed .modern-player .styled-btn { width: 24px; height: 24px; }
+.is-collapsed .modern-player .styled-btn.rmap-play-btn { width: 34px; height: 34px; padding: 7px; }

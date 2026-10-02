@@ -1,5 +1,6 @@
 // 文件作用：apps/server/src/services/contentService.js，负责后端服务的独立功能模块。
 import { cloneState, getState, nextId, persist } from '../store.js'
+import { normalizePhotoAlbum } from '@artist-wiki/content-types'
 
 const collectionFor = { profile: 'profile', news: 'news', event: 'events', photo: 'photos', song: 'songs', video: 'videos' }
 
@@ -27,7 +28,8 @@ function setItem(type, item) {
 export async function saveItem(type, id, payload, actor, summary = '更新内容') {
   const previous = getItem(type, id)
   const now = new Date().toISOString()
-  const item = { ...(previous || {}), ...payload, id, type, createdAt: previous?.createdAt || now, updatedAt: now }
+  const merged = { ...(previous || {}), ...payload, id, type, createdAt: previous?.createdAt || now, updatedAt: now }
+  const item = type === 'photo' ? normalizePhotoAlbum(merged) : merged
   const versions = getState().versions.filter((version) => version.type === type && version.contentId === id)
   // 首次编辑旧数据时先保留原始快照，否则删除或第一次保存后无法还原初始内容。
   if (!versions.length && previous) {
@@ -65,7 +67,8 @@ export function listVersions(type, id) {
 export async function restoreItem(type, id, versionId, actor) {
   const version = getState().versions.find((item) => item.id === versionId && item.type === type && item.contentId === id)
   if (!version) throw new Error('历史版本不存在')
-  return saveItem(type, id, { ...version.snapshot, deletedAt: version.snapshot.deletedAt || null }, actor, `恢复版本 ${version.versionNo}`)
+  const snapshot = type === 'photo' ? normalizePhotoAlbum(version.snapshot) : version.snapshot
+  return saveItem(type, id, { ...snapshot, deletedAt: snapshot.deletedAt || null }, actor, `恢复版本 ${version.versionNo}`)
 }
 
 export function getSnapshot(type, id, versionId) {

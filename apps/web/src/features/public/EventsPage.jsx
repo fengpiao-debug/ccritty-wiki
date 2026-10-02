@@ -9,18 +9,23 @@ export function EventsPage() {
   const { content } = useContent()
   return (
     <div className="content-page">
-      <PageHeading number="04" title="活动" subtitle="Events & Itinerary" />
+      <PageHeading title="活动" subtitle="Events & Itinerary" />
       <div className="event-timeline">
         {content.events.map((event) => (
           <article className="event-card" key={event.id}>
             <div className="event-date">{formatDate(event.startsAt)}</div>
-            <div className="event-dot"></div>
+            <div className="event-dot" aria-hidden="true"></div>
             <div className="event-body">
               <div className="event-topline"><span className={`status-pill status-${event.status}`}>{event.status === 'upcoming' ? '即将到来' : event.status === 'sold-out' ? '已售罄' : event.status}</span><span>{event.category}</span></div>
-              <h2>{event.title}</h2>
-              <p className="event-location"><MapPin size={14} />{event.city} · {event.venue}</p>
-              <Markdown>{event.markdown}</Markdown>
-              {event.ticketUrl && <a className="source-link" href={event.ticketUrl} target="_blank" rel="noreferrer"><Ticket size={14} />购票 / 报名</a>}
+              <div className={`event-content${event.cover ? ' has-cover' : ''}`}>
+                <div className="event-copy">
+                  <h2>{event.title}</h2>
+                  <p className="event-location"><MapPin size={14} />{event.city} · {event.venue}</p>
+                  <Markdown>{event.markdown}</Markdown>
+                  {event.ticketUrl && <a className="source-link" href={event.ticketUrl} target="_blank" rel="noreferrer"><Ticket size={14} />购票 / 报名</a>}
+                </div>
+                {event.cover && <a className="event-cover" href={event.cover} target="_blank" rel="noreferrer" aria-label={`查看${event.title}海报原图`}><img src={event.cover} alt={`${event.title}海报`} loading="lazy" /></a>}
+              </div>
             </div>
           </article>
         ))}
