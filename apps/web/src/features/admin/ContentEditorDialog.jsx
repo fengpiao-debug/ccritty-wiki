@@ -57,6 +57,6 @@ export function ContentEditorDialog({ item, module, canWrite, onClose, onSaved }
       <div className="cms-meta-strip"><span>创建时间：{formatTime(draft.createdAt)}</span><span>更新时间：{formatTime(draft.updatedAt)}</span></div>
       <ContentFields type={module.type} value={draft} onChange={setDraft} disabled={!locked || busy} uploads onBusyChange={(active) => setUploadCount((count) => Math.max(0, count + (active ? 1 : -1)))} />
       {locked && <label className="cms-summary-field">变更说明<input value={draft.changeSummary || ''} onChange={(e) => setDraft({ ...draft, changeSummary: e.target.value })} /></label>}
-    </div><footer className="cms-dialog-footer"><button type="button" className="cms-button" disabled={pending} onClick={onClose}>关闭</button>{locked && <button className="cms-button primary" disabled={pending}><Save size={16} />{busy ? '保存中…' : uploadCount ? '等待上传完成…' : '保存并生成版本'}</button>}</footer></form>
+    </div><footer className="cms-dialog-footer"><button type="button" className="cms-button" disabled={pending} onClick={onClose}>关闭</button>{locked && <button className="cms-button primary" disabled={pending}><Save size={16} />{busy ? '保存中…' : uploadCount ? '等待处理完成…' : '保存并生成版本'}</button>}</footer></form>
   </AdminDialog>
 }

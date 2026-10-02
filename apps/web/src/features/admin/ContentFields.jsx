@@ -4,6 +4,7 @@ import { ContentUploads } from './ContentUploads'
 import { VideoLinkField } from './VideoLinkField'
 import { PhotoAlbumFields } from './PhotoAlbumFields'
 import { VIDEO_CATEGORIES } from '@artist-wiki/content-types'
+import { toDateTimeInput } from '../../lib/dateTime'
 
 const fields = {
   profile: [['artistName', '歌手名称'], ['subtitle', '副标题'], ['biographyTitle', '首页简介标题', 'text', '锦书（留空使用默认标题）'], ['markdown', '简介（Markdown）', 'textarea']],
@@ -25,9 +26,9 @@ export function ContentFields({ type, value, onChange, disabled, onBusyChange, u
     <div className="cms-form-grid">{type === 'video' && <label className="full">视频大分类<select disabled={disabled} value={value.category || 'other'} onChange={(e) => patch({ category: e.target.value })}>{VIDEO_CATEGORIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>}{(fields[type] || []).map(([key, label, inputType = 'text', placeholder]) =>
     <label className={inputType === 'textarea' ? 'full' : ''} key={key}>{label}
       {inputType === 'textarea' ? <textarea disabled={disabled} rows={key === 'markdown' ? 10 : 5} value={value[key] || ''} onChange={(e) => patch({ [key]: e.target.value })} /> :
-        <input disabled={disabled} required={key === 'title' || key === 'artistName'} type={inputType} placeholder={placeholder} value={value[key] || ''} onChange={(e) => patch(type === 'video' && key === 'bvid' ? { bvid: e.target.value, embedUrl: '' } : { [key]: e.target.value })} />}
+        <input disabled={disabled} required={key === 'title' || key === 'artistName'} type={inputType} placeholder={placeholder} value={inputType === 'datetime-local' ? toDateTimeInput(value[key]) : inputType === 'date' ? (value[key] || '').slice(0, 10) : value[key] || ''} onChange={(e) => patch(type === 'video' && key === 'bvid' ? { bvid: e.target.value, embedUrl: '' } : { [key]: e.target.value })} />}
     </label>)}
-    {type === 'video' && <VideoLinkField value={value} disabled={disabled} onParsed={patch} />}
+    {type === 'video' && <VideoLinkField value={value} disabled={disabled} onParsed={patch} onBusyChange={onBusyChange} />}
     {type !== 'photo' && <label className="full">封面图片地址{!canEditCover && !disabled ? '（需对应图片编辑权限）' : ''}
       <input disabled={disabled || !canEditCover} value={value[imageField] || ''} onChange={(event) => patch({ [imageField]: event.target.value })} /></label>}
     {value[imageField] && <div className="full cms-asset-preview"><img src={value[imageField]} alt="图片预览" /></div>}

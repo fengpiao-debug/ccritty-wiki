@@ -25,10 +25,10 @@ function setItem(type, item) {
   }
 }
 
-export async function saveItem(type, id, payload, actor, summary = '更新内容') {
+export async function saveItem(type, id, payload, actor, summary = '更新内容', { replace = false } = {}) {
   const previous = getItem(type, id)
   const now = new Date().toISOString()
-  const merged = { ...(previous || {}), ...payload, id, type, createdAt: previous?.createdAt || now, updatedAt: now }
+  const merged = { ...(replace ? {} : previous || {}), ...payload, id, type, createdAt: previous?.createdAt || now, updatedAt: now }
   const item = type === 'photo' ? normalizePhotoAlbum(merged) : merged
   const versions = getState().versions.filter((version) => version.type === type && version.contentId === id)
   // 首次编辑旧数据时先保留原始快照，否则删除或第一次保存后无法还原初始内容。
@@ -68,7 +68,7 @@ export async function restoreItem(type, id, versionId, actor) {
   const version = getState().versions.find((item) => item.id === versionId && item.type === type && item.contentId === id)
   if (!version) throw new Error('历史版本不存在')
   const snapshot = type === 'photo' ? normalizePhotoAlbum(version.snapshot) : version.snapshot
-  return saveItem(type, id, { ...snapshot, deletedAt: snapshot.deletedAt || null }, actor, `恢复版本 ${version.versionNo}`)
+  return saveItem(type, id, { ...snapshot, deletedAt: snapshot.deletedAt || null }, actor, `恢复版本 ${version.versionNo}`, { replace: true })
 }
 
 export function getSnapshot(type, id, versionId) {

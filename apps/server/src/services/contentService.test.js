@@ -20,6 +20,22 @@ const serviceSource = (await readFile(new URL('./contentService.js', import.meta
 const { saveItem, getItem, listVersions, restoreItem } = await import(moduleUrl(serviceSource))
 const actor = { username: 'test-editor' }
 
+test('restoring songs and videos replaces fields absent from the old snapshot and survives reload', async () => {
+  for (const [type, collection] of [['song', 'songs'], ['video', 'videos']]) {
+    memory.state.content[collection] = []
+    const original = await saveItem(type, 'rollback-' + type, { title: '原始内容' }, actor)
+    const version = listVersions(type, original.id)[0]
+    await saveItem(type, original.id, { mvUrl: 'https://example.com/mv', description: '后加说明', authorName: '新作者', keywords: '新关键词', cover: '/uploads/images/new.jpg' }, actor)
+    await restoreItem(type, original.id, version.id, actor)
+    memory.reload()
+    const restored = getItem(type, original.id)
+    assert.equal(restored.title, '原始内容')
+    assert.equal(restored.createdAt, original.createdAt)
+    for (const key of ['mvUrl', 'description', 'authorName', 'keywords', 'cover']) assert.equal(Object.hasOwn(restored, key), false)
+    assert.equal(restored.deletedAt, null)
+  }
+})
+
 test('save/reload retains album metadata; restoring a legacy snapshot removes later images and private fields', async () => {
   memory.state.content.photos = [{ id: 'old', type: 'photo', title: '旧照片', url: '/uploads/images/old.jpg', caption: '原始说明' }]
   const saved = await saveItem('photo', 'old', { title: '新图集', category: 'portrait', authorType: 'fan', authorName: '小林', fanId: 'private', showFanId: true, publishedAt: '2026-10-02T19:30', location: '杭州', coverImageId: 'second', images: [

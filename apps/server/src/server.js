@@ -267,7 +267,10 @@ app.post('/api/admin/content/:type/:id/restore/:versionId', requireContentWrite,
   if (!lock || lock.userId !== request.actor.id || new Date(lock.expiresAt).getTime() <= Date.now()) return response.status(423).json({ message: '请先获得该内容的编辑锁' })
   const snapshot = getSnapshot(request.params.type, request.params.id, request.params.versionId)
   if (!snapshot) return response.status(404).json({ message: '历史版本不存在' })
-  const assetError = validateAssetChanges(getItem(request.params.type, request.params.id), snapshot, request.actor, request.params.type)
+  const previous = getItem(request.params.type, request.params.id)
+  // 恢复会移除新版本才有的字段，删除封面也必须校验图片编辑权限。
+  const restored = { ...Object.fromEntries(Object.keys(previous || {}).map((key) => [key, null])), ...snapshot }
+  const assetError = validateAssetChanges(previous, restored, request.actor, request.params.type)
   if (assetError) return response.status(403).json({ message: assetError })
   const item = await restoreItem(request.params.type, request.params.id, request.params.versionId, request.actor)
   getState().locks = getState().locks.filter((item) => !(item.type === request.params.type && item.contentId === request.params.id))

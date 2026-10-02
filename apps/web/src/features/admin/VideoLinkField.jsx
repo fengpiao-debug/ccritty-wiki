@@ -1,26 +1,32 @@
 // 文件作用：校验 B 站 BV/AV 号、视频链接和播放器链接，并把规范化结果回填到视频草稿。
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link2 } from 'lucide-react'
 import { parseBilibili } from '@artist-wiki/content-types'
 import { contentApi } from '../../lib/api'
 import { useAuth } from '../auth/AuthContext'
 
-export function VideoLinkField({ value, disabled, onParsed }) {
+export function VideoLinkField({ value, disabled, onParsed, onBusyChange }) {
   const [source, setSource] = useState(value.embedUrl || value.bvid || '')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [resolving, setResolving] = useState(false)
+  const pending = useRef(false)
+  const callbacks = useRef({ onParsed, onBusyChange })
+  callbacks.current = { onParsed, onBusyChange }
   const auth = useAuth()
   useEffect(() => setSource(value.embedUrl || value.bvid || ''), [value.embedUrl, value.bvid])
 
   async function parse() {
+    if (disabled || pending.current || !source.trim()) return
     setError('')
     setNotice('')
     try {
       const result = parseBilibili(source)
+      pending.current = true
       setResolving(true)
+      callbacks.current.onBusyChange?.(true)
       const details = await contentApi.resolveVideo(source)
-      onParsed((current) => ({
+      callbacks.current.onParsed((current) => ({
         ...result,
         title: details.title || current.title || '',
         description: details.description || current.description || '',
@@ -31,6 +37,10 @@ export function VideoLinkField({ value, disabled, onParsed }) {
       setError(cause.message || '无法解析该 B 站视频地址')
     } finally {
       setResolving(false)
+      if (pending.current) {
+        pending.current = false
+        callbacks.current.onBusyChange?.(false)
+      }
     }
   }
 

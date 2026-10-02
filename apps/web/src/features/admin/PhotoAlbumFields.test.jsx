@@ -8,7 +8,7 @@ import { uploadFile } from './uploadApi'
 import { contentApi } from '../../lib/api'
 
 vi.mock('./uploadApi', () => ({ uploadFile: vi.fn() }))
-vi.mock('../../lib/api', () => ({ contentApi: { lock: vi.fn(), unlock: vi.fn(), saveContent: vi.fn(), getAdminContent: vi.fn() } }))
+vi.mock('../../lib/api', () => ({ contentApi: { lock: vi.fn(), unlock: vi.fn(), saveContent: vi.fn(), getAdminContent: vi.fn(), resolveVideo: vi.fn() } }))
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ can: () => true }) }))
 const module = { type: 'photo', key: 'photos', scope: 'image', label: '图集管理' }
 const fixture = { id: 'album', title: '原始标题', images: [{ id: 'a', url: '/uploads/images/a.jpg', keywords: '舞台' }, { id: 'b', url: '/uploads/images/b.jpg', keywords: '红裙' }], coverImageId: 'a' }
@@ -105,4 +105,35 @@ it('保存视频的分类、作者、时间、地点、关键词和正文', asyn
   fireEvent.click(screen.getByRole('button', { name: '保存并生成版本' }))
   await waitFor(() => expect(onSaved).toHaveBeenCalledOnce())
   expect(contentApi.saveContent.mock.calls[0][2]).toMatchObject({ category: 'mv', authorName: '鱼翅', location: '杭州', publishedAt: '2026-10-02T19:30', keywords: '古风 叙事', markdown: '## 幕后\n剪辑记录' })
+})
+
+it('video timestamps with a timezone remain visible and saving retains the original timestamp', async () => {
+  const stamp = '2026-10-02T11:30:00.000Z'
+  render(<ContentEditorDialog item={{ id: 'video-date', title: '日期测试', publishedAt: stamp }} module={{ type: 'video', label: '视频管理' }} canWrite onClose={vi.fn()} onSaved={vi.fn()} />)
+  await screen.findByRole('button', { name: '保存并生成版本' })
+  const date = new Date(stamp)
+  const field = screen.getByLabelText('拍摄 / 发布时间')
+  expect(field.value).not.toBe('')
+  expect(new Date(field.value).getTime()).toBe(date.getTime())
+  fireEvent.click(screen.getByRole('button', { name: '保存并生成版本' }))
+  await waitFor(() => expect(contentApi.saveContent).toHaveBeenCalledOnce())
+  expect(contentApi.saveContent.mock.calls[0][2].publishedAt).toBe(stamp)
+})
+
+it.each([true, false])('waits for video metadata before allowing save (success=%s)', async (success) => {
+  let resolve, reject
+  contentApi.resolveVideo.mockImplementation(() => new Promise((ok, fail) => { resolve = ok; reject = fail }))
+  render(<ContentEditorDialog item={{ id: 'video-busy', title: '视频', bvid: 'BV1yt411q7cf' }} module={{ type: 'video', label: '视频管理' }} canWrite onClose={vi.fn()} onSaved={vi.fn()} />)
+  await screen.findByRole('button', { name: '保存并生成版本' })
+  fireEvent.click(screen.getByRole('button', { name: '解析链接' }))
+  expect(screen.getByRole('button', { name: '等待处理完成…' }).disabled).toBe(true)
+  fireEvent.submit(screen.getByLabelText('视频名称').closest('form'))
+  expect(contentApi.saveContent).not.toHaveBeenCalled()
+  await act(async () => success ? resolve({ title: '获取到的标题', cover: '/uploads/images/cover.jpg' }) : reject(new Error('解析失败')))
+  expect(screen.getByRole('button', { name: '保存并生成版本' }).disabled).toBe(false)
+  if (success) {
+    fireEvent.click(screen.getByRole('button', { name: '保存并生成版本' }))
+    await waitFor(() => expect(contentApi.saveContent).toHaveBeenCalledOnce())
+    expect(contentApi.saveContent.mock.calls[0][2].title).toBe('获取到的标题')
+  } else expect(screen.getByRole('alert').textContent).toContain('解析失败')
 })

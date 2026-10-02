@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowDown, ArrowUp, Check, ImagePlus, Trash2 } from 'lucide-react'
 import { createId, PHOTO_CATEGORIES, PHOTO_AUTHOR_TYPES, MAX_ALBUM_IMAGES, normalizePhotoAlbum, validateUploadMetadata, UPLOAD_TYPES } from '@artist-wiki/content-types'
 import { uploadFile } from './uploadApi'
+import { toDateTimeInput } from '../../lib/dateTime'
 
 export function PhotoAlbumFields({ value, onChange, disabled, uploads, onBusyChange }) {
   const album = normalizePhotoAlbum(value)
@@ -37,6 +38,7 @@ export function PhotoAlbumFields({ value, onChange, disabled, uploads, onBusyCha
   }
   async function uploadImages(files) {
     if (disabled || controller.current || !files.length) return
+    files = Array.from(files)
     if (album.images.length + files.length > MAX_ALBUM_IMAGES) { setErrors(['每个图集最多 ' + MAX_ALBUM_IMAGES + ' 张图片']); return }
     const abortController = new AbortController()
     controller.current = abortController
@@ -71,7 +73,7 @@ export function PhotoAlbumFields({ value, onChange, disabled, uploads, onBusyCha
       }
     }
   }
-  const localTime = album.publishedAt.length === 10 ? album.publishedAt + 'T00:00' : album.publishedAt.slice(0, 16)
+  const localTime = toDateTimeInput(album.publishedAt)
   return <div className="cms-album-editor">
     <div className="cms-form-grid">
       <label>图集标题<input required maxLength={200} disabled={disabled} value={album.title} placeholder="例如：秋日音乐节 · 现场记录" onChange={(e) => patch({ title: e.target.value })} /></label>
