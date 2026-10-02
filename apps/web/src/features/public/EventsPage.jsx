@@ -13,10 +13,13 @@ export function EventsPage() {
       <div className="event-timeline">
         {content.events.map((event) => (
           <article className="event-card" key={event.id}>
-            <div className="event-date">{formatDate(event.startsAt)}</div>
+            <time className="event-date" dateTime={event.startsAt}>{formatDate(event.startsAt)}</time>
             <div className="event-dot" aria-hidden="true"></div>
             <div className="event-body">
-              <div className="event-topline"><span className={`status-pill status-${event.status}`}>{event.status === 'upcoming' ? '即将到来' : event.status === 'sold-out' ? '已售罄' : event.status}</span><span>{event.category}</span></div>
+              {(event.status || event.category) && <div className="event-topline">
+                {event.status && <span className={'status-pill status-' + event.status}>{event.status === 'upcoming' ? '即将到来' : event.status === 'sold-out' ? '已售罄' : event.status}</span>}
+                {event.category && <span className="event-category">{event.category}</span>}
+              </div>}
               <div className={`event-content${event.cover ? ' has-cover' : ''}`}>
                 <div className="event-copy">
                   <h2>{event.title}</h2>
