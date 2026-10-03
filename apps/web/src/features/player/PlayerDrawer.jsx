@@ -50,8 +50,9 @@ export function PlayerDrawer({ collapsed = false }) {
             <button type="button" aria-pressed={tab === 'playlist'} onClick={() => setTab('playlist')}>播放列表</button>
             <button type="button" aria-pressed={tab === 'lyrics'} onClick={() => setTab('lyrics')}>歌词</button>
           </div>
+          {player.nextSong && <p className="player-next-notice" role="status">下一首播放：{player.nextSong.title}</p>}
           <div className="player-drawer-body">
-            <PlaylistPanel queue={player.queue} currentIndex={player.currentIndex} onSelect={player.playAt} />
+            <PlaylistPanel queue={player.queue} currentIndex={player.currentIndex} onSelect={player.playAt} onPlayNext={player.playNext} nextSongId={player.nextSongId} />
             <LyricsPanel lines={player.lyricLines} activeIndex={player.lyricIndex} onSeek={player.seek} />
           </div>
           <footer className="player-drawer-settings">

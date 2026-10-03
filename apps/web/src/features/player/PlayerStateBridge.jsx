@@ -8,15 +8,16 @@ export function PlayerStateBridge({ expectedPlaylist }) {
   const { audioEl } = useAudioPlayerElement()
   const dispatch = useContext(audioPlayerDispatchContext)
   const { registerController, syncFromController, syncMediaStatus, playbackRequest, acknowledgePlayback } = usePlayer()
+  const playlistReady = audio.playList.length === expectedPlaylist.length && audio.playList.every((track, index) => track.id === expectedPlaylist[index].id && track.src === expectedPlaylist[index].src)
 
   useEffect(() => {
     // 第三方引擎接收新队列后才选歌，避免索引指向旧专辑。
-    if (!playbackRequest || audio.playList.length !== expectedPlaylist.length || !audio.playList.every((track, index) => track.id === expectedPlaylist[index].id && track.src === expectedPlaylist[index].src)) return
+    if (!playbackRequest || !playlistReady) return
     audio.setTrack(playbackRequest.index)
     dispatch({ type: 'SET_REPEAT_TYPE', repeatType: 'ALL' })
     audio.play()
     acknowledgePlayback(playbackRequest.id)
-  }, [audio, expectedPlaylist, playbackRequest, acknowledgePlayback, dispatch])
+  }, [audio, playlistReady, playbackRequest, acknowledgePlayback, dispatch])
 
   useEffect(() => registerController({
     ...audio,
@@ -27,8 +28,8 @@ export function PlayerStateBridge({ expectedPlaylist }) {
   }), [audio, dispatch, registerController])
 
   useEffect(() => {
-    syncFromController(audio)
-  }, [audio.isPlaying, audio.currentTime, audio.duration, audio.currentIndex, audio.repeatType, syncFromController])
+    if (playlistReady) syncFromController(audio)
+  }, [playlistReady, audio.isPlaying, audio.currentTime, audio.duration, audio.currentIndex, audio.repeatType, syncFromController])
 
   useEffect(() => {
     if (!audioEl) return undefined

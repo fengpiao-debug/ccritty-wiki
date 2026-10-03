@@ -30,6 +30,8 @@ afterEach(cleanup)
 function Probe() {
   const player = usePlayer()
   return <><button onClick={() => player.playAt(1)}>页面选歌</button>
+    <button onClick={() => player.playNext(fixture.songs[0])}>首曲下一首播放</button>
+    <button onClick={() => player.playNext({ id: 'silent', title: '无音源' })}>无音源下一首播放</button>
     <button onClick={() => player.playSongs([fixture.songs[1], { id: "silent", title: "无音源" }])}>播放单曲专辑</button><button onClick={() => player.playSongs([fixture.songs[1], fixture.songs[0]], fixture.songs[0].id)}>切换专辑并选第二首</button><span data-testid="queue">{player.queue.map((song) => song.id).join(",")}</span><span data-testid="state">{JSON.stringify({ song: player.currentSong?.id, ...player.state })}</span></>
 }
 function App() {
@@ -42,6 +44,99 @@ function App() {
 const state = () => JSON.parse(screen.getByTestId('state').textContent)
 
 describe('播放器接入', () => {
+  it('移动已播放的歌曲到下一首，保留进度、播放状态和同一音频实例且不重复添加', async () => {
+    const view = render(<App />)
+    await waitFor(() => expect(document.querySelector('audio')?.src).toContain('test-a.mp3'))
+    fireEvent.click(screen.getByText('页面选歌'))
+    await waitFor(() => expect(state().song).toBe('song-b'))
+    const audio = document.querySelector('audio')
+    Object.defineProperty(audio, 'readyState', { configurable: true, value: 4 })
+    act(() => { audio.currentTime = 12; audio.dispatchEvent(new Event('timeupdate')) })
+    const playCalls = HTMLMediaElement.prototype.play.mock.calls.length
+    const pauseCalls = HTMLMediaElement.prototype.pause.mock.calls.length
+    fireEvent.click(screen.getByRole('button', { name: '播放列表和歌词' }))
+    fireEvent.click(screen.getByRole('button', { name: '下一首播放 测试歌曲甲' }))
+    await waitFor(() => expect(screen.getByTestId('queue').textContent).toBe('song-b,song-a'))
+    expect(state().song).toBe('song-b')
+    expect(state().isPlaying).toBe(true)
+    expect(state().currentTime).toBe(12)
+    expect(audio.currentTime).toBe(12)
+    expect(audio.src).toContain('test-b.mp3')
+    expect(HTMLMediaElement.prototype.play.mock.calls.length).toBe(playCalls)
+    expect(HTMLMediaElement.prototype.pause.mock.calls.length).toBe(pauseCalls)
+    fireEvent.click(screen.getByRole('button', { name: '下一首播放 测试歌曲甲' }))
+    expect(screen.getByTestId('queue').textContent).toBe('song-b,song-a')
+    fixture.songs = fixture.songs.map((song) => ({ ...song }))
+    view.rerender(<App />)
+    expect(screen.getByTestId('queue').textContent).toBe('song-b,song-a')
+    expect(state().song).toBe('song-b')
+    fireEvent.ended(audio)
+    await waitFor(() => expect(audio.src).toContain('test-a.mp3'))
+    expect(state().song).toBe('song-a')
+    expect(screen.queryByText('下一首播放：测试歌曲甲')).toBeNull()
+    expect(document.querySelector('audio')).toBe(audio)
+  })
+
+  it.each(['single', 'shuffle'])('指定下一首优先于 %s 模式，播放后保留原模式', async (mode) => {
+    fixture.songs.push({ id: 'song-c', title: '测试歌曲丙', audioUrl: '/test-c.mp3' })
+    render(<App />)
+    await waitFor(() => expect(document.querySelector('audio')?.src).toContain('test-a.mp3'))
+    fireEvent.click(screen.getByRole('button', { name: 'Play', exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Repeat: All tracks' }))
+    if (mode === 'shuffle') {
+      fireEvent.click(screen.getByRole('button', { name: 'Repeat: One track' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Repeat: Off' }))
+    }
+    expect(state().mode).toBe(mode)
+    fireEvent.click(screen.getByRole('button', { name: '播放列表和歌词' }))
+    fireEvent.click(screen.getByRole('button', { name: '下一首播放 测试歌曲丙' }))
+    expect(screen.getByTestId('queue').textContent).toBe('song-a,song-c,song-b')
+    expect(state().song).toBe('song-a')
+    expect(state().mode).toBe(mode)
+    fireEvent.ended(document.querySelector('audio'))
+    await waitFor(() => expect(state().song).toBe('song-c'))
+    expect(state().mode).toBe(mode)
+    expect(state().isPlaying).toBe(true)
+    expect(screen.queryByText('下一首播放：测试歌曲丙')).toBeNull()
+    if (mode === 'single') {
+      fireEvent.ended(document.querySelector('audio'))
+      expect(state().song).toBe('song-c')
+    }
+  })
+
+  it('手动下一首也遵守指定顺序，暂停时不会自动播放', async () => {
+    fixture.songs.push({ id: 'song-c', title: '测试歌曲丙', audioUrl: '/test-c.mp3' })
+    render(<App />)
+    await waitFor(() => expect(document.querySelector('audio')?.src).toContain('test-a.mp3'))
+    fireEvent.click(screen.getByRole('button', { name: 'Repeat: All tracks' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Repeat: One track' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Repeat: Off' }))
+    fireEvent.click(screen.getByRole('button', { name: '播放列表和歌词' }))
+    fireEvent.click(screen.getByRole('button', { name: '下一首播放 测试歌曲丙' }))
+    const playCalls = HTMLMediaElement.prototype.play.mock.calls.length
+    fireEvent.click(screen.getByRole('button', { name: 'Next track' }))
+    await waitFor(() => expect(state().song).toBe('song-c'))
+    expect(state().mode).toBe('shuffle')
+    expect(state().isPlaying).toBe(false)
+    expect(HTMLMediaElement.prototype.play.mock.calls.length).toBe(playCalls)
+  })
+
+  it('可将队列外的歌曲加入下一首，跳过无音源，切换专辑后清除指定下一首', async () => {
+    render(<App />)
+    await waitFor(() => expect(document.querySelector('audio')?.src).toContain('test-a.mp3'))
+    fireEvent.click(screen.getByText('播放单曲专辑'))
+    await waitFor(() => expect(state().song).toBe('song-b'))
+    fireEvent.click(screen.getByText('首曲下一首播放'))
+    expect(screen.getByTestId('queue').textContent).toBe('song-b,song-a')
+    expect(state().song).toBe('song-b')
+    fireEvent.click(screen.getByText('无音源下一首播放'))
+    expect(screen.getByTestId('queue').textContent).toBe('song-b,song-a')
+    fireEvent.click(screen.getByRole('button', { name: '播放列表和歌词' }))
+    expect(screen.getByText('下一首播放：测试歌曲甲')).toBeTruthy()
+    fireEvent.click(screen.getByText('播放单曲专辑'))
+    expect(screen.queryByText('下一首播放：测试歌曲甲')).toBeNull()
+    expect(screen.getByTestId('queue').textContent).toBe('song-b')
+  })
   it('页面选歌与播放器同步，路由切换不重建音频', async () => {
     render(<App />)
     await waitFor(() => expect(document.querySelector('audio')?.src).toContain('test-a.mp3'))

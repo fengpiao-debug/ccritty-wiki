@@ -47,7 +47,17 @@ export function ModernPlayer() {
       <div id={controlsId} className="modern-player-controls">
         <AudioPlayer playList={playList} colorScheme="light" activeUI={activeUI}
           placement={placement} customIcons={icons}
-          rootContainerProps={{ className: 'modern-player' }}>
+          rootContainerProps={{
+            className: 'modern-player',
+            // Honor an explicit next song once, even in shuffle/single repeat,
+            // then let the engine continue using the user's existing mode.
+            onEndedCapture: (event) => {
+              if (event.target.tagName === 'AUDIO' && player.playQueuedNext({ startPlayback: true })) event.stopPropagation()
+            },
+            onClickCapture: (event) => {
+              if (event.target.closest?.('.rmap-next-btn') && player.playQueuedNext()) event.stopPropagation()
+            },
+          }}>
           <AudioPlayer.CustomComponent id="bridge"><PlayerStateBridge expectedPlaylist={playList} /></AudioPlayer.CustomComponent>
           <AudioPlayer.CustomComponent id="drawer"><PlayerDrawer collapsed={collapsed} /></AudioPlayer.CustomComponent>
         </AudioPlayer>

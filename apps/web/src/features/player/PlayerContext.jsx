@@ -12,6 +12,10 @@ export function PlayerProvider({ children }) {
   const [playbackRequest, setPlaybackRequest] = useState(null)
   const requestSequence = useRef(0)
   const queueSelection = useRef(null)
+  const queueRef = useRef(queue)
+  queueRef.current = queue
+  const [nextSongId, setNextSongId] = useState(null)
+  const nextSongRef = useRef(null)
   const [state, setState] = useState({
     isPlaying: false,
     isLoading: false,
@@ -21,15 +25,22 @@ export function PlayerProvider({ children }) {
     mode: 'sequence',
   })
   const controllerRef = useRef(null)
+  const currentSong = queue[currentIndex] || null
+  const currentSongRef = useRef(currentSong)
+  currentSongRef.current = currentSong
 
   useEffect(() => {
     const available = (content.songs || []).filter((song) => song.audioUrl)
     const playable = queueSelection.current ? queueSelection.current.map((id) => available.find((song) => song.id === id)).filter(Boolean) : available
     setQueue(playable)
-    setCurrentIndex((index) => Math.min(index, Math.max(playable.length - 1, 0)))
+    const selectedIndex = playable.findIndex((song) => song.id === currentSongRef.current?.id)
+    setCurrentIndex((index) => selectedIndex >= 0 ? selectedIndex : Math.min(index, Math.max(playable.length - 1, 0)))
+    if (!playable.some((song) => song.id === nextSongRef.current)) {
+      nextSongRef.current = null
+      setNextSongId(null)
+    }
   }, [content.songs])
 
-  const currentSong = queue[currentIndex] || null
   const lyricLines = useMemo(() => parseLyrics(currentSong?.lyrics || ''), [currentSong])
   const lyricIndex = activeLyricIndex(lyricLines, state.currentTime)
 
@@ -48,7 +59,13 @@ export function PlayerProvider({ children }) {
       duration: Number.isFinite(nextState.duration) ? nextState.duration : 0,
       mode: ({ ALL: 'sequence', ONE: 'single', SHUFFLE: 'shuffle', NONE: 'once' })[nextState.repeatType] || value.mode,
     }))
-    if (Number.isInteger(nextState.currentIndex)) setCurrentIndex(nextState.currentIndex)
+    if (Number.isInteger(nextState.currentIndex)) {
+      setCurrentIndex(nextState.currentIndex)
+      if (nextSongRef.current && queueRef.current[nextState.currentIndex]?.id === nextSongRef.current) {
+        nextSongRef.current = null
+        setNextSongId(null)
+      }
+    }
   }, [])
 
   const syncMediaStatus = useCallback((status) => {
@@ -58,6 +75,8 @@ export function PlayerProvider({ children }) {
   function playAt(index) {
     const song = queue[index]
     if (!song) return
+    nextSongRef.current = null
+    setNextSongId(null)
     setCurrentIndex(index)
     controllerRef.current?.setTrack(index)
     controllerRef.current?.play()
@@ -66,6 +85,8 @@ export function PlayerProvider({ children }) {
   function playSongs(songs, startId) {
     const playable = songs.filter((song) => song.audioUrl)
     if (!playable.length) return
+    nextSongRef.current = null
+    setNextSongId(null)
     const index = Math.max(0, playable.findIndex((song) => song.id === startId))
     queueSelection.current = playable.map((song) => song.id)
     setQueue(playable)
@@ -74,6 +95,33 @@ export function PlayerProvider({ children }) {
   }
   const acknowledgePlayback = useCallback((id) => setPlaybackRequest((request) => request?.id === id ? null : request), [])
 
+  function playNext(song) {
+    if (!song?.audioUrl || song.id === currentSong?.id) return
+    if (!currentSong) { playSongs([song]); return }
+    // Move an existing entry instead of duplicating it; the engine preserves the
+    // current track by ID when the playlist changes, including its playback time.
+    const updated = queue.filter((item) => item.id !== song.id)
+    const index = updated.findIndex((item) => item.id === currentSong.id)
+    updated.splice(index + 1, 0, song)
+    queueSelection.current = updated.map((item) => item.id)
+    nextSongRef.current = song.id
+    setNextSongId(song.id)
+    setQueue(updated)
+    setCurrentIndex(index)
+  }
+
+  function playQueuedNext({ startPlayback = false } = {}) {
+    const index = queue.findIndex((song) => song.id === nextSongRef.current)
+    const controller = controllerRef.current
+    if (index < 0 || !controller) return false
+    nextSongRef.current = null
+    setNextSongId(null)
+    setCurrentIndex(index)
+    controller.setTrack(index)
+    if (startPlayback) controller.play()
+    return true
+  }
+
   function toggle() {
     if (!currentSong) return
     controllerRef.current?.togglePlay()
@@ -81,6 +129,7 @@ export function PlayerProvider({ children }) {
 
   function next() {
     if (!queue.length) return
+    if (playQueuedNext()) return
     controllerRef.current?.next()
   }
 
@@ -107,6 +156,10 @@ export function PlayerProvider({ children }) {
     state,
     playAt,
     playSongs,
+    playNext,
+    playQueuedNext,
+    nextSongId,
+    nextSong: queue.find((song) => song.id === nextSongId) || null,
     playbackRequest,
     acknowledgePlayback,
     toggle,

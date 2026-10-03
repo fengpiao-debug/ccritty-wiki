@@ -5,6 +5,7 @@ import { contentApi } from '../../lib/api'
 import { UserEditorDialog } from './UserEditorDialog'
 import { AdminDialog } from './AdminDialog'
 import { permissionGroups } from './adminModules'
+import { SearchHighlight } from '../../components/SearchHighlight'
 
 export function UserManagementPage() {
   const [users, setUsers] = useState([])
@@ -50,7 +51,7 @@ export function UserManagementPage() {
       <div className="cms-table-scroll"><table className="cms-table">
         <thead><tr><th>账号</th><th>角色</th><th>负责模块</th><th>附加权限</th><th>操作</th></tr></thead>
         <tbody>{loading ? <tr><td colSpan={5} className="cms-table-empty">正在加载账号…</td></tr> : filtered.slice((current - 1) * 10, current * 10).map((user) => <tr key={user.id}>
-          <td><div className="cms-user-cell"><span className={`cms-avatar${user.role === 'admin' ? '' : ' editor'}`}>{user.displayName.slice(0, 1)}</span><div><strong>{user.displayName}</strong><small>{user.username}</small></div></div></td>
+          <td><div className="cms-user-cell"><span className={`cms-avatar${user.role === 'admin' ? '' : ' editor'}`}>{user.displayName.slice(0, 1)}</span><div><strong><SearchHighlight query={query}>{user.displayName}</SearchHighlight></strong><small><SearchHighlight query={query}>{user.username}</SearchHighlight></small></div></div></td>
           <td><span className={`cms-badge ${user.role === 'admin' ? 'blue' : 'neutral'}`}>{user.role === 'admin' ? '管理员' : '编辑者'}</span></td>
           <td><div className="cms-tags">{user.role === 'admin' ? <span className="cms-muted">账号与权限管理</span> : permissionGroups.filter((g) => user.permissions.includes(`${g.scope}.read`)).map((g) => <span key={g.scope} className="cms-badge green">{g.label} · {user.permissions.includes(`${g.scope}.write`) ? '编辑' : '只读'}</span>)}{user.role !== 'admin' && !user.permissions.some((p) => p.endsWith('.read')) && <span className="cms-muted">未分配</span>}</div></td>
           <td><div className="cms-tags">{user.permissions.includes('content.publish') && <span className="cms-badge neutral">发布</span>}{user.permissions.includes('content.rollback') && <span className="cms-badge amber">回滚</span>}{!user.permissions.some((p) => p.startsWith('content.')) && <span className="cms-muted">—</span>}</div></td>

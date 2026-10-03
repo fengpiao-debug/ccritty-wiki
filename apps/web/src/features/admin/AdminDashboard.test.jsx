@@ -42,6 +42,14 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('后台职责与交互', () => {
+  it('后台歌曲搜索显示命中的歌词片段', async () => {
+    fixture.user = { ...editor, permissions: ['music.read'] }
+    contentApi.getAdminContent.mockResolvedValue({ songs: [{ id: 'song-1', title: '轮回之境', lyrics: '[00:10]穿越古道海域' }] })
+    const { container } = mount('/admin/content/songs')
+    await screen.findByText('轮回之境')
+    fireEvent.change(screen.getByRole('textbox', { name: '搜索内容' }), { target: { value: '穿越古道海域' } })
+    expect(container.querySelector('.lyrics-search-excerpt mark').textContent).toBe('穿越古道海域')
+  })
   it('管理员可以进入网站设置，编辑者不能访问设置页面', async () => {
     const view = mount('/admin/settings')
     expect(await screen.findByRole('heading', { name: '网站设置' })).toBeTruthy()
@@ -108,6 +116,8 @@ describe('后台职责与交互', () => {
     expect(screen.queryByRole('button', { name: '新增内容' })).toBeNull()
     expect(screen.getByRole('button', { name: '查看 测试动态' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: '编辑 测试动态' })).toBeNull()
+    fireEvent.change(screen.getByRole('textbox', { name: '搜索内容' }), { target: { value: '动态' } })
+    expect(screen.getByText('动态', { selector: 'mark' })).toBeTruthy()
   })
   it('已有账号可修改权限并保存，管理员账号没有编辑入口', async () => {
     mount('/admin/users')
@@ -121,6 +131,8 @@ describe('后台职责与交互', () => {
   it('搜索过滤账号，并在保存失败时保留窗口和错误', async () => {
     mount('/admin/users')
     await screen.findByText('文字编辑')
+    fireEvent.change(screen.getByRole('textbox', { name: '搜索账号' }), { target: { value: 'EDITOR' } })
+    expect(screen.getByText('editor', { selector: 'mark' })).toBeTruthy()
     fireEvent.change(screen.getByRole('textbox', { name: '搜索账号' }), { target: { value: '不存在' } })
     expect(screen.getByText('没有匹配的账号')).toBeTruthy()
     fireEvent.change(screen.getByRole('textbox', { name: '搜索账号' }), { target: { value: '' } })

@@ -104,6 +104,7 @@ it('视频分类与搜索覆盖作者和正文，详情显示所有补充字段'
   render(<VideoPage />)
   fireEvent.change(screen.getByLabelText('搜索视频'), { target: { value: '鱼翅 花絮' } })
   expect(screen.getByRole('button', { name: '播放 秋日现场' })).toBeTruthy()
+  expect(screen.getByText('鱼翅', { selector: 'mark' })).toBeTruthy()
   expect(screen.queryByRole('button', { name: '播放 日常记录' })).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: 'vlog', exact: true }))
   expect(screen.getByText('没有找到匹配的视频，试试其他关键词。')).toBeTruthy()

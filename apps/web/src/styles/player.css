@@ -90,6 +90,11 @@
 .player-section-heading { display: none; }
 .player-drawer-body > .lyrics-panel { border-left: 1px solid #e6e9ed; }
 .playlist-list { display: flex; flex-direction: column; }
+.playlist-row { display: flex; align-items: center; }
+.modern-player .playlist-row .playlist-item { flex: 1; min-width: 0; }
+.modern-player .playlist-next-action { flex-shrink: 0; width: 30px; height: 30px; margin-right: 8px; }
+.modern-player .playlist-next-action[aria-pressed=true] { color: #d93640; background: #fff1f2; }
+.player-next-notice { margin: 0; padding: 8px 14px; border-bottom: 1px solid #e6e9ed; color: #d93640; font-size: 12px; overflow-wrap: anywhere; }
 .modern-player .playlist-item { display: grid; grid-template-columns: 24px minmax(0, 1fr) minmax(60px, .5fr); align-items: center; gap: 10px; min-height: 42px; padding: 8px 14px; text-align: left; color: #8a939d; }
 .playlist-item strong, .playlist-item small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .modern-player .playlist-item strong { font-size: 13px; font-weight: 500; color: #3d4650; }

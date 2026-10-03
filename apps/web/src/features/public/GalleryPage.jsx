@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Images, Search, X } from 'lucide-react'
 import { PHOTO_CATEGORIES, normalizePhotoAlbum, matchesPhotoAlbum, photoCategoryLabel, photoAuthorLabel } from '@artist-wiki/content-types'
 import { useContent } from './useContent'
 import { PageHeading } from './NewsPage'
+import { SearchHighlight } from '../../components/SearchHighlight'
 
 const displayTime = (value) => value ? value.slice(0, 16).replace('T', ' ') : ''
 
@@ -58,7 +59,7 @@ export function GalleryPage() {
     <div className="album-grid">{visible.map((album) => <article className="album-card" key={album.id}>
       <button type="button" className="album-card-open" aria-label={'打开图集 ' + (album.title || '未命名图集')} onClick={() => setActive(album)}>
         <div className="album-cover">{album.url ? <img src={album.url} alt={album.title || '图集封面'} loading="lazy" /> : <span className="album-cover-empty">影卷</span>}<span className="album-count"><Images size={14} />{album.images.length} 张</span></div>
-        <div className="album-card-copy"><span className="album-category">{photoCategoryLabel(album.category)}</span><h2>{album.title || '未命名图集'}</h2>{album.description && <p>{album.description}</p>}<div className="album-card-meta">{album.publishedAt && <time dateTime={album.publishedAt}>{displayTime(album.publishedAt)}</time>}{album.location && <span>{album.location}</span>}</div>{photoAuthorLabel(album) && <small>{photoAuthorLabel(album)}</small>}</div>
+        <div className="album-card-copy"><span className="album-category"><SearchHighlight query={query}>{photoCategoryLabel(album.category)}</SearchHighlight></span><h2><SearchHighlight query={query}>{album.title || '未命名图集'}</SearchHighlight></h2>{album.description && <p><SearchHighlight query={query}>{album.description}</SearchHighlight></p>}<div className="album-card-meta">{album.publishedAt && <time dateTime={album.publishedAt}><SearchHighlight query={query}>{displayTime(album.publishedAt)}</SearchHighlight></time>}{album.location && <span><SearchHighlight query={query}>{album.location}</SearchHighlight></span>}</div>{photoAuthorLabel(album) && <small><SearchHighlight query={query}>{photoAuthorLabel(album)}</SearchHighlight></small>}</div>
       </button>
     </article>)}</div>
     {!loading && !visible.length && <div className="album-empty"><Images size={32} /><p>{albums.length ? '没有找到匹配的图集，试试其他关键词。' : '影卷尚未收录图集。'}</p></div>}

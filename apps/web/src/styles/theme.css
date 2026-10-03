@@ -32,3 +32,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .subtle-button { color: var(--ink); background: rgba(255,255,255,.5); border-color: var(--line); }
 .subtle-button:hover { border-color: rgba(168,45,44,.35); }
 .compact { min-height: 34px; font-size: 12px; }
+.search-highlight { color: #751f20; background: #f5dfa0; border-radius: 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.lyrics-search-excerpt { margin: 8px 0 0; color: var(--muted); font: 12px/1.8 ui-sans-serif, sans-serif; overflow-wrap: anywhere; }
+.lyrics-search-label { color: var(--red); }

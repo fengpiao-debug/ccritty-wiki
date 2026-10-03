@@ -18,6 +18,7 @@ it('filters by metadata, per-image keywords and category, but excludes hidden fa
   expect(screen.getByAltText('现场图集').getAttribute('src')).toBe('/uploads/images/b.jpg')
   fireEvent.change(screen.getByLabelText('搜索图集'), { target: { value: '杭州 红裙' } })
   expect(screen.getByRole('button', { name: '打开图集 现场图集' })).toBeTruthy()
+  expect(screen.getByRole('button', { name: '打开图集 现场图集' }).querySelector('mark').textContent).toBe('杭州')
   expect(screen.queryByRole('button', { name: '打开图集 旧照片' })).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: '生活照（CC发布的）' }))
   expect(screen.getByText('没有找到匹配的图集，试试其他关键词。')).toBeTruthy()

@@ -8,6 +8,7 @@ import { getVideoEmbedUrl } from '../../utils/content'
 import { PageHeading } from './NewsPage'
 import { resolveBilibiliJsonp } from '../../lib/bilibiliJsonp'
 import { Markdown } from './Markdown'
+import { SearchHighlight } from '../../components/SearchHighlight'
 
 function VideoPlayer({ video, onClose }) {
   const dialogRef = useRef(null)
@@ -46,7 +47,7 @@ function VideoPlayer({ video, onClose }) {
   </dialog>, document.body)
 }
 
-function VideoCard({ video, onPlay }) {
+function VideoCard({ video, onPlay, query }) {
   const [cover, setCover] = useState(video.cover || '')
   const embedUrl = getVideoEmbedUrl(video.embedUrl || video.bvid)
   const playableUrl = embedUrl ? embedUrl.replace(/([?&])autoplay=0(?:&|$)/, '$1autoplay=1&') : ''
@@ -68,9 +69,9 @@ function VideoCard({ video, onPlay }) {
         {playableUrl && <span className="video-play"><Play size={22} fill="currentColor" /></span>}
       </button>
     </div>
-    <h2 className="video-title">{video.title}</h2>
-    <p className="video-card-meta">{videoCategoryLabel(video.category)}{video.authorName && ' · ' + video.authorName}</p>
-    {(video.publishedAt || video.location) && <p className="video-card-meta">{[video.publishedAt?.slice(0, 10), video.location].filter(Boolean).join(' · ')}</p>}
+    <h2 className="video-title"><SearchHighlight query={query}>{video.title}</SearchHighlight></h2>
+    <p className="video-card-meta"><SearchHighlight query={query}>{videoCategoryLabel(video.category)}</SearchHighlight>{video.authorName && <> · <SearchHighlight query={query}>{video.authorName}</SearchHighlight></>}</p>
+    {(video.publishedAt || video.location) && <p className="video-card-meta"><SearchHighlight query={query}>{[video.publishedAt?.slice(0, 10), video.location].filter(Boolean).join(' · ')}</SearchHighlight></p>}
     <button type="button" className="text-link video-details-link" onClick={() => onPlay({ ...video, playableUrl })}>查看详情</button>
   </article>
 }
@@ -89,7 +90,7 @@ export function VideoPage() {
       </div>
       <p className="album-results" role="status">共 {visible.length} 个视频{(query || category !== 'all') && <button type="button" onClick={() => { setQuery(''); setCategory('all') }}>重置筛选</button>}</p>
       <div className="video-grid">
-        {visible.map((video) => <VideoCard video={video} key={video.id} onPlay={setActiveVideo} />)}
+        {visible.map((video) => <VideoCard video={video} key={video.id} query={query} onPlay={setActiveVideo} />)}
         {!visible.length && <p className="empty-copy">{content.videos.length ? '没有找到匹配的视频，试试其他关键词。' : '视频档案尚未建立。'}</p>}
       </div>
       {activeVideo && <VideoPlayer video={activeVideo} onClose={() => setActiveVideo(null)} />}
