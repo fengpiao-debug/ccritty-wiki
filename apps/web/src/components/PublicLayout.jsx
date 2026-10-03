@@ -4,6 +4,7 @@ import { Image, Library, CalendarDays, Newspaper, PlaySquare, UserRound } from '
 import { useContent } from '../features/public/useContent'
 import { useSiteSettings } from '../features/public/useSiteSettings'
 import { PublicFooter } from './PublicFooter'
+import { BrandMark } from './BrandMark'
 
 const navItems = [
   ['/', '主卷', UserRound],
@@ -17,16 +18,17 @@ const navItems = [
 export function PublicLayout() {
   const { content } = useContent()
   const siteSettings = useSiteSettings()
+  const { settings } = siteSettings
   const artistName = content.profile?.artistName || '歌手 Wiki'
 
   return (
     <div className="public-app">
       <header className="public-header">
         <NavLink to="/" className="brand-lockup">
-          <span className="brand-mark">印</span>
+          <BrandMark src={settings.headerLogoUrl} text={settings.headerMarkText} />
           <span>
-            <strong>{artistName}</strong>
-            <small>Artist Archive / Wiki</small>
+            <strong>{settings.headerName || artistName}</strong>
+            {settings.headerSubtitle && <small>{settings.headerSubtitle}</small>}
           </span>
         </NavLink>
         <nav className="public-nav" aria-label="主导航">

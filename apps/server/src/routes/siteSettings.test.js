@@ -65,6 +65,37 @@ test('anonymous users and editors cannot access admin settings, including forged
   assert.equal(entries.length, 0)
 })
 
+test('branding settings round trip through public and admin APIs and can be cleared independently', async (t) => {
+  const { request } = await setup(t)
+  const branding = {
+    siteTitle: ' 音乐收藏 ', faviconUrl: '/uploads/images/icon.png', headerName: '站点名字',
+    headerSubtitle: 'My Archive', headerLogoUrl: 'https://example.com/header.png', headerMarkText: '影',
+    footerLogoUrl: '/uploads/images/footer.png', footerMarkText: '音', footerTagline: '一起收藏音乐',
+  }
+  assert.equal((await request('/admin/site-settings', 'admin', branding)).status, 200)
+  const settings = (await (await request('/site-settings')).json()).settings
+  for (const [key, value] of Object.entries(branding)) assert.equal(settings[key], value.trim())
+  assert.equal(settings.footerName, DEFAULT_SITE_SETTINGS.footerName)
+  await request('/admin/site-settings', 'admin', { faviconUrl: '', headerSubtitle: '', footerLogoUrl: '', footerTagline: '' })
+  const cleared = (await (await request('/site-settings')).json()).settings
+  assert.equal(cleared.faviconUrl, '')
+  assert.equal(cleared.headerSubtitle, '')
+  assert.equal(cleared.footerTagline, '')
+  assert.equal(cleared.headerLogoUrl, branding.headerLogoUrl)
+})
+
+test('branding rejects script, credential, malformed and oversized image URLs', async (t) => {
+  const { request, entries } = await setup(t)
+  for (const key of ['faviconUrl', 'headerLogoUrl', 'footerLogoUrl']) {
+    for (const value of ['javascript:alert(1)', 'data:image/png;base64,AAAA', '//evil.test/icon.png', '/\\evil.test/icon.png', 'https://user:pass@example.com/a.png', '/bad\npath.png', 'not-a-url', '/' + 'a'.repeat(2000)]) {
+      assert.equal((await request('/admin/site-settings', 'admin', { [key]: value })).status, 400, `${key}: ${value}`)
+    }
+  }
+  assert.equal((await request('/admin/site-settings', 'admin', { headerMarkText: '超过四个字符' })).status, 400)
+  assert.deepEqual((await (await request('/site-settings')).json()).settings, DEFAULT_SITE_SETTINGS)
+  assert.equal(entries.length, 0)
+})
+
 test('invalid URLs, oversized or non-text values and unknown keys do not change settings', async (t) => {
   const { request, entries } = await setup(t)
   for (const body of [null, [], { policeUrl: 'javascript:alert(1)' }, { icpUrl: 'not-a-url' }, { icpUrl: 'https://user:password@example.com' }, { aboutMarkdown: 'a'.repeat(20001) }, { contactEmail: 'not-an-email' }, { footerAbout: 42 }, { copyright: 42 }, { permissions: ['*'] }]) {

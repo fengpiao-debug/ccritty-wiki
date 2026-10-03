@@ -10,10 +10,11 @@ import { MusicPage } from './features/public/MusicPage'
 import { VideoPage } from './features/public/VideoPage'
 import { AdminDashboard } from './features/admin/AdminDashboard'
 import { AboutPage } from './features/public/AboutPage'
+import { SiteSettingsProvider } from './features/public/useSiteSettings'
 
 export function App() {
   return (
-    <Routes>
+    <SiteSettingsProvider><Routes>
       <Route element={<PublicLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/news" element={<NewsPage />} />
@@ -25,6 +26,6 @@ export function App() {
       </Route>
       <Route path="/admin/*" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    </Routes></SiteSettingsProvider>
   )
 }

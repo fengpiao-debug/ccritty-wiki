@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowUpRight, Mail } from 'lucide-react'
 import { DEFAULT_SITE_SETTINGS } from '@artist-wiki/content-types'
+import { BrandMark } from './BrandMark'
 
 function Filing({ number, url }) {
   if (!number) return null
@@ -13,9 +14,9 @@ export function PublicFooter({ settings: savedSettings }) {
   return <footer className="public-footer">
     <div className="public-footer-main">
       <div className="public-footer-brand">
-        <Link to="/" className="public-footer-lockup"><span className="brand-mark" aria-hidden="true">印</span><strong>{settings.footerName || '音乐档案'}</strong></Link>
+        <Link to="/" className="public-footer-lockup"><BrandMark src={settings.footerLogoUrl} text={settings.footerMarkText} /><strong>{settings.footerName || '音乐档案'}</strong></Link>
         {settings.footerDescription && <p>{settings.footerDescription}</p>}
-        <small>ARTIST ARCHIVE</small>
+        {settings.footerTagline && <small>{settings.footerTagline}</small>}
       </div>
       <nav className="public-footer-column" aria-label="页脚栏目导航">
         <h2>探索档案</h2>
@@ -23,6 +24,7 @@ export function PublicFooter({ settings: savedSettings }) {
         <Link to="/news">近期动态</Link>
         <Link to="/events">活动行程</Link>
         <Link to="/gallery">影像记录</Link>
+        <Link to="/videos">视频作品</Link>
       </nav>
       <section className="public-footer-column">
         <h2>{settings.aboutTitle || '关于本站'}</h2>

@@ -146,3 +146,31 @@ test('all image asset edits require image permission, including song covers', ()
   assert.equal(validateAssetChanges({}, { cover: '/new.png' }, { role: 'editor', permissions: ['image.video.read', 'image.video.write'] }, 'video'), '')
   assert.notEqual(validateAssetChanges({}, { heroImage: '/new.png' }, { role: 'editor', permissions: ['image.song.read', 'image.song.write'] }, 'song'), '')
 })
+
+test('only administrators can upload site icons and logos, even with forged editor grants', () => {
+  for (const actor of [undefined, { role: 'admin', permissions: [] }, { role: 'editor', permissions: ['user.manage', '*', 'image.write'] }]) {
+    for (const category of ['siteIcon', 'siteLogo']) {
+      let passed = false
+      let status = 200
+      requireUploadPermission({ actor, query: { category } }, { status(code) { status = code; return this }, json() {} }, () => { passed = true })
+      assert.equal(passed, actor?.role === 'admin')
+      assert.equal(status, actor?.role === 'admin' ? 200 : 403)
+    }
+  }
+})
+
+test('site images are decoded and resized to PNG, preserve aspect ratio, and reject damaged or oversized files', async () => {
+  const buffer = await sharp({ create: { width: 120, height: 60, channels: 3, background: '#a82d2c' } }).jpeg().toBuffer()
+  for (const [category, size] of [['siteIcon', 64], ['siteLogo', 256]]) {
+    const result = await prepareUpload({ originalname: 'logo.jpg', mimetype: 'image/jpeg', buffer }, category)
+    assert.equal(result.ok, true)
+    assert.equal(result.extension, '.png')
+    const metadata = await sharp(result.buffer).metadata()
+    assert.equal(metadata.width, size)
+    assert.equal(metadata.height, size)
+    assert.equal(metadata.hasAlpha, true)
+    assert.equal((await sharp(result.buffer).raw().toBuffer())[3], 0, 'rectangular logo has transparent padding')
+    assert.equal((await prepareUpload({ originalname: 'bad.png', mimetype: 'image/png', buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) }, category)).ok, false)
+    assert.equal(validateUpload({ originalname: 'large.png', mimetype: 'image/png', buffer: Buffer.alloc(5 * 1024 * 1024 + 1) }, category).ok, false)
+  }
+})

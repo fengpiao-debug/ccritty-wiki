@@ -7,6 +7,7 @@ import { AdminDashboard } from './AdminDashboard'
 import { AdminLayout } from '../../components/AdminLayout'
 import { PermissionMatrix } from './PermissionMatrix'
 import { contentApi } from '../../lib/api'
+import { SiteSettingsProvider } from '../public/useSiteSettings'
 import { useState } from 'react'
 
 const fixture = vi.hoisted(() => ({
@@ -16,20 +17,21 @@ vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({ session: fixture.user, loading: false, logout: vi.fn(), can: (permission) => can(permissionsForUser(fixture.user), permission) }),
 }))
 vi.mock('../../lib/api', () => ({
-  contentApi: { users: vi.fn(), createUser: vi.fn(), updateUser: vi.fn(), deleteUser: vi.fn(), getAdminContent: vi.fn(), getAdminSiteSettings: vi.fn(), imageAssets: vi.fn(), updateImageAsset: vi.fn(), lock: vi.fn(), unlock: vi.fn() },
+  contentApi: { users: vi.fn(), createUser: vi.fn(), updateUser: vi.fn(), deleteUser: vi.fn(), getAdminContent: vi.fn(), getAdminSiteSettings: vi.fn(), getSiteSettings: vi.fn(), imageAssets: vi.fn(), updateImageAsset: vi.fn(), lock: vi.fn(), unlock: vi.fn() },
 }))
 vi.mock('./uploadApi', () => ({ uploadFile: vi.fn() }))
 import { uploadFile } from './uploadApi'
 const admin = { id: 'admin', username: 'admin', displayName: '系统管理员', role: 'admin', permissions: ['*'] }
 const editor = { id: 'editor-a', username: 'editor-a', displayName: '文字编辑', role: 'editor', permissions: ['text.read', 'text.write'] }
 function mount(path = '/admin') {
-  return render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/admin/*" element={<AdminLayout><AdminDashboard /></AdminLayout>} /></Routes></MemoryRouter>)
+  return render(<MemoryRouter initialEntries={[path]}><SiteSettingsProvider><Routes><Route path="/admin/*" element={<AdminLayout><AdminDashboard /></AdminLayout>} /></Routes></SiteSettingsProvider></MemoryRouter>)
 }
 beforeEach(() => {
   fixture.user = admin
   vi.clearAllMocks()
   contentApi.users.mockResolvedValue({ items: [admin, editor] })
   contentApi.getAdminSiteSettings.mockResolvedValue({ settings: {} })
+  contentApi.getSiteSettings.mockResolvedValue({ settings: {} })
   contentApi.getAdminContent.mockResolvedValue({ profile: { id: 'profile', artistName: '测试歌手' }, news: [{ id: 'news-1', title: '测试动态' }], events: [] })
   contentApi.createUser.mockResolvedValue({})
   contentApi.updateUser.mockResolvedValue({})

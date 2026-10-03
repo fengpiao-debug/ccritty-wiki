@@ -1,6 +1,8 @@
 // 文件作用：前后端共用上传分类、权限、格式和大小限制；客户端预检不能替代服务端内容校验。
 const MB = 1024 * 1024
 export const UPLOAD_TYPES = {
+  siteIcon: { permission: 'user.manage', extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'], maxSize: 5 * MB, label: '网站图标', hint: 'PNG / JPG / WEBP / GIF / AVIF · 最大 5MB · 自动生成 PNG 图标' },
+  siteLogo: { permission: 'user.manage', extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'], maxSize: 5 * MB, label: '网站标识', hint: 'PNG / JPG / WEBP / GIF / AVIF · 最大 5MB · 建议使用正方形图片' },
   image: { permission: 'image.write', extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'], maxSize: 25 * MB, label: '图片', hint: 'JPG / PNG / WEBP / GIF / AVIF · 最大 25MB' },
   cover: { permission: 'image.song.write', extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'], maxSize: 25 * MB, label: '歌曲封面', hint: 'JPG / PNG / WEBP / GIF / AVIF · 最大 25MB' },
   videoCover: { permission: 'image.video.write', extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'], maxSize: 25 * MB, label: '视频封面', hint: 'JPG / PNG / WEBP / GIF / AVIF · 最大 25MB' },

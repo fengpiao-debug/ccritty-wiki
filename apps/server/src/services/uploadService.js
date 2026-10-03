@@ -90,7 +90,16 @@ export async function prepareUpload(file, category) {
   }
   if (category === 'text') return { ok: true, result: { text: validation.text, name: normalizedFile.originalname } }
   let buffer = file.buffer
-  if (category === 'image' || category === 'cover') {
+  let extension = validation.extension
+  if (category === 'siteIcon' || category === 'siteLogo') {
+    try {
+      // 站点图片取第一帧并转成 PNG，favicon 使用透明留边，保留原始比例。
+      buffer = await sharp(buffer, { limitInputPixels: 40_000_000, failOn: 'warning' })
+        .rotate().resize(category === 'siteIcon' ? 64 : 256, category === 'siteIcon' ? 64 : 256,
+          { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer()
+      extension = '.png'
+    } catch { return { ok: false, message: '图片无法安全解码，可能已损坏、尺寸过大或内容伪装' } }
+  } else if (category === 'image' || category === 'cover') {
     try {
       // 重编码去除原始尾部及元数据，禁止仅带合法文件头的损坏图片进入公开目录。
       buffer = await sharp(buffer, { animated: true, limitInputPixels: 40_000_000, failOn: 'warning' })
@@ -99,7 +108,7 @@ export async function prepareUpload(file, category) {
   }
   if (buffer.length > 25 * 1024 * 1024) return { ok: false, message: '处理后的资源超过 25MB 限制' }
   const metadata = category === 'audio' ? await parseAudioMetadata(normalizedFile, validation.extension) : null
-  return { ok: true, buffer, extension: validation.extension, metadata }
+  return { ok: true, buffer, extension, metadata }
 }
 
 export async function saveUpload(prepared, category, root = path.resolve(process.cwd(), 'uploads')) {
