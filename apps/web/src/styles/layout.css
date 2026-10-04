@@ -121,6 +121,9 @@
 .event-location { display: flex; gap: 6px; align-items: flex-start; color: var(--muted); font-size: 13px; line-height: 1.7; }
 .event-location svg { flex: 0 0 14px; margin-top: 4px; }
 .status-pill { padding: 5px 9px; border-radius: 999px; background: rgba(57,122,115,.12); color: var(--teal); }
+.status-pending { background: rgba(150,100,30,.12); color: #805416; }
+.event-pending .event-body { border-color: rgba(150,100,30,.35); }
+.event-pending-notice { margin: 0 0 12px; color: #805416; font: 12px/1.8 ui-sans-serif, sans-serif; }
 .status-sold-out { color: var(--red); background: rgba(168,45,44,.1); }
 .gallery-grid { columns: 3 220px; column-gap: 14px; }.gallery-tile { position: relative; display: block; width: 100%; min-height: 180px; margin: 0 0 14px; padding: 0; overflow: hidden; border: 0; background: #d9d2c2; break-inside: avoid; }.gallery-tile img { display: block; width: 100%; min-height: 180px; object-fit: cover; filter: saturate(.75); transition: transform .45s ease; }.gallery-tile:hover img { transform: scale(1.04); }.gallery-tile small { position: absolute; right: 12px; bottom: 10px; color: #fff; font: 10px ui-sans-serif, sans-serif; text-shadow: 0 1px 4px #000; }
 .music-list { border-top: 1px solid var(--line); }.music-row { display: grid; grid-template-columns: 100px 1fr auto; gap: 20px; align-items: center; padding: 24px 10px; border-bottom: 1px dashed var(--line); }.music-row.is-current { background: rgba(168,45,44,.06); }.music-index { color: var(--muted); font: 11px ui-sans-serif, sans-serif; }.music-row h2 { margin: 0 0 7px; font-size: 28px; }.music-row p { margin: 0; color: var(--muted); font: 12px ui-sans-serif, sans-serif; }.play-circle { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 50%; color: var(--red); background: transparent; }.play-circle:disabled { opacity: .35; cursor: not-allowed; }

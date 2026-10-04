@@ -53,6 +53,48 @@ const timelines = [
 ]
 const titles = () => screen.getAllByRole('heading', { level: 2 }).map((node) => node.textContent)
 
+it('待官宣活动无论有无日期都置顶，两组内按所选时间排序且不修改源数据', () => {
+  fixture.content.events = [
+    { id: 'normal-new', title: '已官宣新场次', startsAt: '2027-01-01', status: 'upcoming' },
+    { id: 'pending-unknown', title: '未定日期场次', startsAt: '', status: 'pending' },
+    { id: 'pending-old', title: '较早拟定场次', startsAt: '2026-01-01', status: 'pending' },
+    { id: 'normal-unknown', title: '普通无日期场次' },
+    { id: 'pending-new', title: '较晚拟定场次', startsAt: '2026-02-01', status: 'pending' },
+    { id: 'normal-old', title: '已官宣旧场次', startsAt: '2025-01-01', status: 'sold-out' },
+  ]
+  const original = structuredClone(fixture.content.events)
+  render(<EventsPage />)
+  expect(titles()).toEqual(['较晚拟定场次', '较早拟定场次', '未定日期场次', '已官宣新场次', '已官宣旧场次', '普通无日期场次'])
+  expect(screen.getAllByText('待定（待官宣）')).toHaveLength(3)
+  expect(screen.getAllByText('审批已通过，尚未官宣；时间、地点等信息以官方公布为准。')).toHaveLength(3)
+  const pending = screen.getByRole('heading', { name: '未定日期场次' }).closest('article')
+  expect(within(pending).getByText('日期待定').closest('time').hasAttribute('datetime')).toBe(false)
+  expect(within(screen.getByRole('heading', { name: '较早拟定场次' }).closest('article')).getByText(/拟定日期：/)).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: '最新' }))
+  expect(titles()).toEqual(['较早拟定场次', '较晚拟定场次', '未定日期场次', '已官宣旧场次', '已官宣新场次', '普通无日期场次'])
+  expect(fixture.content.events).toEqual(original)
+})
+
+it('待官宣场次可组合状态搜索与标签筛选，官宣后恢复日期排序', () => {
+  fixture.content.events = [
+    { id: 'pending', title: '杭州拟定演出', city: '杭州', status: 'pending', startsAt: '2026-01-01', tags: ['现场'] },
+    { id: 'normal', title: '南京官宣演出', status: 'upcoming', startsAt: '2027-01-01', tags: ['现场'] },
+    { id: 'other', title: '其他拟定演出', status: 'pending', startsAt: 'invalid', tags: ['音乐节'] },
+  ]
+  const view = render(<EventsPage />)
+  fireEvent.click(screen.getAllByRole('button', { name: '查看标签：现场' })[0])
+  expect(titles()).toEqual(['杭州拟定演出', '南京官宣演出'])
+  fireEvent.change(screen.getByRole('searchbox'), { target: { value: '待官宣 杭州' } })
+  expect(titles()).toEqual(['杭州拟定演出'])
+  expect(screen.getByText('待官宣', { selector: 'mark' })).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: '清空活动搜索' }))
+  fixture.content.events = fixture.content.events.map((event) => event.id === 'pending' ? { ...event, status: 'upcoming' } : event)
+  view.rerender(<EventsPage />)
+  expect(titles()).toEqual(['南京官宣演出', '杭州拟定演出'])
+  expect(screen.queryByText(/审批已通过/)).toBeNull()
+  expect(screen.queryByText(/拟定日期：/)).toBeNull()
+})
+
 it('动态显示可搜索的类型标识，旧记录不凭空添加，保留来源和标签筛选', () => {
   fixture.content.news = [
     { id: 'song', title: '新曲消息', newsKind: '新歌发布', tags: ['国风'], sourceName: '官方微博', sourceUrl: 'https://example.com/source', publishedAt: '2026-10-03' },

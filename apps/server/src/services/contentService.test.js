@@ -21,6 +21,26 @@ const { saveItem, getItem, listVersions, restoreItem } = await import(moduleUrl(
 const actor = { username: 'test-editor' }
 beforeEach(() => { memory.state.content = { photos: [] }; memory.state.versions = [] })
 
+test('pending events retain status and optional dates through save, reload, announcement and version restore', async () => {
+  memory.state.content.events = []
+  await saveItem('event', 'pending-show', { title: '待官宣演出', status: 'pending', startsAt: '', city: '杭州', tags: ['演出'] }, actor)
+  memory.reload()
+  assert.equal(getItem('event', 'pending-show').status, 'pending')
+  assert.equal(getItem('event', 'pending-show').startsAt, '')
+  const pendingVersion = memory.state.versions[0]
+  await saveItem('event', 'pending-show', { cover: '/uploads/images/poster.jpg' }, actor)
+  memory.reload()
+  assert.equal(getItem('event', 'pending-show').status, 'pending')
+  await saveItem('event', 'pending-show', { status: 'upcoming', startsAt: '2026-11-01T19:30:00+08:00' }, actor)
+  memory.reload()
+  assert.equal(getItem('event', 'pending-show').status, 'upcoming')
+  await restoreItem('event', 'pending-show', pendingVersion.id, actor)
+  memory.reload()
+  assert.equal(getItem('event', 'pending-show').status, 'pending')
+  assert.equal(getItem('event', 'pending-show').startsAt, '')
+  assert.deepEqual(getItem('event', 'pending-show').tags, ['演出'])
+})
+
 test('news identifier survives save/reload and partial edits, can be cleared and restored independently of tags', async () => {
   memory.state.content.news = [{ id: 'kind-test', type: 'news', title: '原始动态', tags: ['国风'], sourceName: '官方微博' }]
   await saveItem('news', 'kind-test', { newsKind: '  新歌发布  ' }, actor)

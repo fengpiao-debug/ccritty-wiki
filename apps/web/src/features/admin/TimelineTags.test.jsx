@@ -23,6 +23,33 @@ async function edit(type, item = {}) {
   return { input, onSaved }
 }
 
+it('活动可保存为待官宣且日期允许留空，标签与其他信息保留', async () => {
+  const { onSaved } = await edit('event', { city: '杭州', tags: ['演出'], startsAt: '' })
+  const status = screen.getByRole('combobox', { name: '活动状态' })
+  expect(status.value).toBe('')
+  fireEvent.change(status, { target: { value: 'pending' } })
+  fireEvent.click(screen.getByRole('button', { name: '保存并生成版本' }))
+  await waitFor(() => expect(onSaved).toHaveBeenCalled())
+  expect(contentApi.saveContent).toHaveBeenCalledWith('event', 'event-1', expect.objectContaining({ status: 'pending', startsAt: '', city: '杭州', tags: ['演出'] }))
+})
+
+it('重新编辑待官宣活动可改为即将到来并保存，保留拟定时间', async () => {
+  const { onSaved } = await edit('event', { status: 'pending', startsAt: '2026-11-01T19:30:00+08:00' })
+  const status = screen.getByRole('combobox', { name: '活动状态' })
+  expect(status.value).toBe('pending')
+  fireEvent.change(status, { target: { value: 'upcoming' } })
+  fireEvent.click(screen.getByRole('button', { name: '保存并生成版本' }))
+  await waitFor(() => expect(onSaved).toHaveBeenCalled())
+  expect(contentApi.saveContent).toHaveBeenCalledWith('event', 'event-1', expect.objectContaining({ status: 'upcoming', startsAt: '2026-11-01T19:30:00+08:00' }))
+})
+
+it.each(['pending', '旧活动状态', ''])('只读活动正确回显状态 %s 并禁止修改', (status) => {
+  render(<ContentFields type="event" value={{ status }} disabled />)
+  const field = screen.getByRole('combobox', { name: '活动状态' })
+  expect(field.value).toBe(status)
+  expect(field.disabled).toBe(true)
+})
+
 it('动态标识可选择常用项、输入自定义文字，和标签独立保存', async () => {
   const { onSaved } = await edit('news', { tags: ['国风'], sourceName: '官方微博', newsKind: '新歌发布' })
   const input = screen.getByRole('textbox', { name: '动态标识', exact: true })
