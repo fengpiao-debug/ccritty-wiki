@@ -10,8 +10,8 @@ import { contentApi } from '../lib/api'
 vi.mock('../lib/api', () => ({ contentApi: { getSiteSettings: vi.fn() } }))
 vi.mock('../features/public/useContent', () => ({ useContent: () => ({ content: { profile: { artistName: '档案歌手' } } }) }))
 
-beforeEach(() => vi.resetAllMocks())
-afterEach(() => { cleanup(); document.head.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]').forEach((link) => link.remove()) })
+beforeEach(() => { vi.resetAllMocks(); vi.stubGlobal('scrollTo', vi.fn()) })
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); document.head.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]').forEach((link) => link.remove()) })
 
 it('替换所有旧 favicon，连续替换及清空后恢复原始图标，标题支持回退', () => {
   document.head.insertAdjacentHTML('beforeend', '<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32"><link rel="apple-touch-icon" href="/favicon.png">')
