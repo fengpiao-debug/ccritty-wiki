@@ -70,6 +70,9 @@
 .timeline-page .page-heading { margin-bottom: 32px; }
 .timeline-page .timeline-tools { max-width: 1000px; margin: 0 auto; }
 .timeline-tools input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.timeline-sort-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 108px; padding: 9px 12px; border: 1px solid var(--red-deep); border-radius: 3px; background: var(--red-deep); color: var(--paper-light); font: 13px/1.6 ui-sans-serif, sans-serif; cursor: pointer; }
+.timeline-sort-toggle:hover { background: var(--red); border-color: var(--red); }
+.timeline-sort-toggle:focus-visible { outline: 2px solid var(--red); outline-offset: 3px; }
 .timeline-controls { max-width: 1000px; margin: 0 auto; }
 .timeline-tag-filter, .timeline-tags { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .timeline-tag-filter { padding: 18px 0 0; color: var(--muted); font: 12px/1.6 ui-sans-serif, sans-serif; }

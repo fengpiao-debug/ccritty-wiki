@@ -65,7 +65,7 @@ it.each(timelines)('$label 点击内容标签进行精确筛选，可叠加搜�
   expect(titles()).toEqual(['南京新记录', '南京旧记录'])
   const filter = screen.getByRole('group', { name: `${label}标签筛选` })
   expect(within(filter).getByRole('button', { name: '音乐会', exact: true }).getAttribute('aria-pressed')).toBe('true')
-  fireEvent.click(screen.getByRole('button', { name: '最早在前' }))
+  fireEvent.click(screen.getByRole('button', { name: '最新在前' }))
   expect(titles()).toEqual(['南京旧记录', '南京新记录'])
   fireEvent.change(screen.getByRole('searchbox'), { target: { value: '现场' } })
   expect(titles()).toEqual(['南京新记录'])
@@ -96,7 +96,7 @@ it.each(timelines)('$label 直接访问不存在的标签时显示空结果，�
   expect(screen.getAllByRole('button', { name: '查看标签：现场' })).toHaveLength(1)
 })
 
-it.each(timelines)('$label 默认按真实时间倒序，切换正序时日期待定仍置后且不修改源数据', ({ key, dateField, Page }) => {
+it.each(timelines)('$label 使用一个按钮切换时间正反序，日期待定始终置后且不修改源数据', ({ label, key, dateField, Page }) => {
   fixture.content[key] = [
     { id: 'old', title: '较早记录', [dateField]: '2025-09-14' },
     { id: 'unknown', title: '无效日期记录', [dateField]: 'invalid' },
@@ -107,14 +107,19 @@ it.each(timelines)('$label 默认按真实时间倒序，切换正序时日期�
   ]
   const original = structuredClone(fixture.content[key])
   render(<Page />)
-  expect(screen.getByRole('button', { name: '最新在前' }).getAttribute('aria-pressed')).toBe('true')
+  const sortGroup = screen.getByRole('group', { name: `${label}时间排序` })
+  expect(within(sortGroup).getAllByRole('button')).toHaveLength(1)
+  const toggle = within(sortGroup).getByRole('button', { name: '最新在前' })
+  expect(toggle.title).toBe('点击切换为最早在前')
   expect(titles()).toEqual(['最新记录', '同一时间记录', '中间记录', '较早记录', '无效日期记录', '缺失日期记录'])
   for (const node of screen.getAllByText('日期待定')) expect(node.closest('time').hasAttribute('datetime')).toBe(false)
 
-  fireEvent.click(screen.getByRole('button', { name: '最早在前' }))
-  expect(screen.getByRole('button', { name: '最早在前' }).getAttribute('aria-pressed')).toBe('true')
+  fireEvent.click(toggle)
+  expect(within(sortGroup).getByRole('button', { name: '最早在前' })).toBe(toggle)
+  expect(toggle.title).toBe('点击切换为最新在前')
   expect(titles()).toEqual(['较早记录', '中间记录', '最新记录', '同一时间记录', '无效日期记录', '缺失日期记录'])
-  fireEvent.click(screen.getByRole('button', { name: '最新在前' }))
+  fireEvent.click(toggle)
+  expect(within(sortGroup).getByRole('button', { name: '最新在前' })).toBe(toggle)
   expect(titles()[0]).toBe('最新记录')
   expect(fixture.content[key]).toEqual(original)
 })
@@ -131,7 +136,7 @@ it.each(timelines)('$label 支持多个关键词跨字段搜索，排序保留�
   expect(titles()).toEqual(['Critty 最新演出', 'Critty 较早演出'])
   expect(screen.getByRole('status').textContent).toBe(`共 2 ${unit}${label} · 搜索结果`)
   expect(screen.getAllByText('Critty', { selector: 'mark' })).toHaveLength(2)
-  fireEvent.click(screen.getByRole('button', { name: '最早在前' }))
+  fireEvent.click(screen.getByRole('button', { name: '最新在前' }))
   expect(titles()).toEqual(['Critty 较早演出', 'Critty 最新演出'])
   expect(input.value).toBe('  ＣＲＩＴＴＹ   轮回之境 ')
   fireEvent.change(input, { target: { value: '不存在的消息' } })

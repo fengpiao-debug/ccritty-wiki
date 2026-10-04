@@ -1,20 +1,24 @@
-import { Search, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Search, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { normalizeTags } from '@artist-wiki/content-types'
 import { SearchHighlight } from '../../components/SearchHighlight'
 
 export function TimelineTools({ label, placeholder, query, setQuery, sortOrder, setSortOrder, tags, selectedTag, setSelectedTag }) {
+  const newestFirst = sortOrder === 'desc'
+  const SortIcon = newestFirst ? ArrowDown : ArrowUp
   return <div className="timeline-controls">
     <div className="album-tools timeline-tools">
-    <div className="album-filters" role="group" aria-label={`${label}时间排序`}>
-      <button type="button" aria-pressed={sortOrder === 'desc'} onClick={() => setSortOrder('desc')}>最新在前</button>
-      <button type="button" aria-pressed={sortOrder === 'asc'} onClick={() => setSortOrder('asc')}>最早在前</button>
-    </div>
-    <label className="album-search">
-      <Search size={18} aria-hidden="true" />
-      <input type="search" aria-label={`搜索${label}`} placeholder={placeholder} value={query} onChange={(event) => setQuery(event.target.value)} />
-      {query && <button type="button" className="album-icon" aria-label={`清空${label}搜索`} onClick={() => setQuery('')}><X size={16} /></button>}
-    </label>
+      <div role="group" aria-label={`${label}时间排序`}>
+        <button type="button" className="timeline-sort-toggle" title={`点击切换为${newestFirst ? '最早在前' : '最新在前'}`} onClick={() => setSortOrder((current) => current === 'desc' ? 'asc' : 'desc')}>
+          <SortIcon size={16} aria-hidden="true" />
+          <span>{newestFirst ? '最新在前' : '最早在前'}</span>
+        </button>
+      </div>
+      <label className="album-search">
+        <Search size={18} aria-hidden="true" />
+        <input type="search" aria-label={`搜索${label}`} placeholder={placeholder} value={query} onChange={(event) => setQuery(event.target.value)} />
+        {query && <button type="button" className="album-icon" aria-label={`清空${label}搜索`} onClick={() => setQuery('')}><X size={16} /></button>}
+      </label>
     </div>
     {(tags.length > 0 || selectedTag) && <div className="timeline-tag-filter" role="group" aria-label={`${label}标签筛选`}>
       <span>标签</span>
