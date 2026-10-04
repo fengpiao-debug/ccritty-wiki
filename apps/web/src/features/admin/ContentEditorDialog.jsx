@@ -4,7 +4,7 @@ import { Save } from 'lucide-react'
 import { contentApi } from '../../lib/api'
 import { AdminDialog } from './AdminDialog'
 import { ContentFields } from './ContentFields'
-import { normalizePhotoAlbum, validatePhotoAlbum, validateMediaMetadata, normalizeTags, getTimelineTags, validateTags } from '@artist-wiki/content-types'
+import { normalizePhotoAlbum, validatePhotoAlbum, validateMediaMetadata, normalizeTags, getTimelineTags, validateTags, normalizeNewsKind, validateNewsKind } from '@artist-wiki/content-types'
 
 export function ContentEditorDialog({ item, module, canWrite, onClose, onSaved }) {
   const [draft, setDraft] = useState(() => {
@@ -54,6 +54,11 @@ export function ContentEditorDialog({ item, module, canWrite, onClose, onSaved }
     }
     const hasTags = ['news', 'event'].includes(module.type)
     const { pendingTag, ...payload } = draft
+    if (module.type === 'news') {
+      const invalid = validateNewsKind(draft.newsKind)
+      if (invalid) { setError(invalid); return }
+      payload.newsKind = normalizeNewsKind(draft.newsKind)
+    }
     if (hasTags) {
       payload.tags = normalizeTags([...normalizeTags(draft.tags), pendingTag || ''])
       // 标签编辑器就地显示校验错误，避免在窗口顶部重复显示。

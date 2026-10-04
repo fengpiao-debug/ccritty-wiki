@@ -21,6 +21,31 @@ const { saveItem, getItem, listVersions, restoreItem } = await import(moduleUrl(
 const actor = { username: 'test-editor' }
 beforeEach(() => { memory.state.content = { photos: [] }; memory.state.versions = [] })
 
+test('news identifier survives save/reload and partial edits, can be cleared and restored independently of tags', async () => {
+  memory.state.content.news = [{ id: 'kind-test', type: 'news', title: '原始动态', tags: ['国风'], sourceName: '官方微博' }]
+  await saveItem('news', 'kind-test', { newsKind: '  新歌发布  ' }, actor)
+  memory.reload()
+  assert.equal(getItem('news', 'kind-test').newsKind, '新歌发布')
+  const initial = memory.state.versions.find((version) => version.changeSummary === '初始版本')
+  const tagged = memory.state.versions.find((version) => version.snapshot.newsKind === '新歌发布')
+  await saveItem('news', 'kind-test', { cover: '/uploads/images/cover.jpg' }, actor)
+  assert.equal(getItem('news', 'kind-test').newsKind, '新歌发布')
+  await saveItem('news', 'kind-test', { newsKind: '幕后花絮' }, actor)
+  memory.reload()
+  assert.equal(getItem('news', 'kind-test').newsKind, '幕后花絮')
+  await saveItem('news', 'kind-test', { newsKind: '  ' }, actor)
+  memory.reload()
+  assert.equal(getItem('news', 'kind-test').newsKind, '')
+  await restoreItem('news', 'kind-test', tagged.id, actor)
+  memory.reload()
+  assert.equal(getItem('news', 'kind-test').newsKind, '新歌发布')
+  await restoreItem('news', 'kind-test', initial.id, actor)
+  memory.reload()
+  assert.equal(getItem('news', 'kind-test').newsKind, '')
+  assert.deepEqual(getItem('news', 'kind-test').tags, ['国风'])
+  assert.equal(getItem('news', 'kind-test').sourceName, '官方微博')
+})
+
 test('legacy event categories migrate on partial edits, can be cleared and restored from old snapshots', async () => {
   memory.state.content.events = [{ id: 'legacy', type: 'event', title: '旧活动', category: '拼盘演出', tags: [] }]
   await saveItem('event', 'legacy', { cover: '/uploads/images/cover.jpg' }, actor)

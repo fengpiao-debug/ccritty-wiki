@@ -53,6 +53,29 @@ const timelines = [
 ]
 const titles = () => screen.getAllByRole('heading', { level: 2 }).map((node) => node.textContent)
 
+it('动态显示可搜索的类型标识，旧记录不凭空添加，保留来源和标签筛选', () => {
+  fixture.content.news = [
+    { id: 'song', title: '新曲消息', newsKind: '新歌发布', tags: ['国风'], sourceName: '官方微博', sourceUrl: 'https://example.com/source', publishedAt: '2026-10-03' },
+    { id: 'mv', title: '影像消息', newsKind: 'MV发布', tags: ['国风'], publishedAt: '2026-10-04' },
+    { id: 'custom', title: '特别消息', newsKind: '幕后花絮' },
+    { id: 'legacy', title: '历史消息' },
+    { id: 'empty', title: '清空标识', newsKind: '   ' },
+  ]
+  render(<NewsPage />)
+  expect(screen.getByLabelText('动态标识：新歌发布').textContent).toBe('新歌发布')
+  expect(screen.getByLabelText('动态标识：MV发布').textContent).toBe('MV发布')
+  expect(screen.getByLabelText('动态标识：幕后花絮').textContent).toBe('幕后花絮')
+  expect(screen.getAllByLabelText(/^动态标识：/)).toHaveLength(3)
+  expect(screen.getByText('官方微博')).toBeTruthy()
+  expect(screen.getByRole('link', { name: '查看来源' }).getAttribute('href')).toBe('https://example.com/source')
+  fireEvent.click(screen.getAllByRole('button', { name: '查看标签：国风' })[0])
+  fireEvent.change(screen.getByRole('searchbox'), { target: { value: '新歌发布' } })
+  expect(titles()).toEqual(['新曲消息'])
+  expect(screen.getByText('新歌发布', { selector: 'mark' })).toBeTruthy()
+  fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'mv发布' } })
+  expect(titles()).toEqual(['影像消息'])
+})
+
 it('旧活动类型变成可点击标签，与新标签统一筛选且不重复展示', () => {
   fixture.content.events = [
     { id: 'legacy', title: '旧分类活动', startsAt: '2025-01-01', category: '拼盘演出', tags: [] },

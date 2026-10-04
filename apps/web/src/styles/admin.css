@@ -112,6 +112,13 @@
 .cms-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 17px 20px; }
 .cms-form-grid label, .cms-summary-field { display: grid; gap: 7px; font-size: 12px; }
 .cms-form-grid .full { grid-column: 1 / -1; }
+.cms-news-kind-field { display: grid; gap: 8px; }
+.cms-news-kind-field p { margin: 0; line-height: 1.7; }
+.cms-news-kind-options { display: flex; flex-wrap: wrap; gap: 7px; }
+.cms-news-kind-options button { padding: 5px 10px; border: 1px solid var(--line); border-radius: 3px; background: transparent; color: var(--muted); font: 12px/1.6 ui-sans-serif, sans-serif; cursor: pointer; }
+.cms-news-kind-options button[aria-pressed="true"] { color: var(--red-deep); background: rgba(168,45,44,.07); border-color: rgba(168,45,44,.3); }
+.cms-news-kind-options button:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+.cms-news-kind-options button:disabled { opacity: .5; cursor: not-allowed; }
 .cms-tag-editor { display: grid; gap: 9px; }
 .cms-tag-editor > p { margin: 0; line-height: 1.7; }
 .cms-tag-list { display: flex; flex-wrap: wrap; gap: 7px; margin: 0; padding: 0; list-style: none; }

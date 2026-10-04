@@ -11,7 +11,7 @@ import { validateUserInput } from './services/userValidation.js'
 import { deleteItem, getItem, getSnapshot, listContent, listVersions, restoreItem, saveItem } from './services/contentService.js'
 import { decodeMultipartFilename, prepareUpload, saveUpload } from './services/uploadService.js'
 import { requireUploadPermission } from './middleware/uploadPermission.js'
-import { parseBilibili, publicPhotoAlbum, validateMediaMetadata, validateTags } from '@artist-wiki/content-types'
+import { parseBilibili, publicPhotoAlbum, validateMediaMetadata, validateTags, validateNewsKind } from '@artist-wiki/content-types'
 import { validateAssetChanges } from './services/contentAssetPermissions.js'
 import { listImageAssets, updateImageAsset } from './services/imageAssetService.js'
 import { preparePhotoAlbum } from './services/photoAlbumService.js'
@@ -233,7 +233,7 @@ app.put('/api/admin/content/:type/:id', requireContentWrite, async (request, res
     if (invalid) return response.status(400).json({ message: invalid })
   }
   if (['news', 'event'].includes(request.params.type)) {
-    const invalid = validateTags(request.body?.tags)
+    const invalid = validateTags(request.body?.tags) || (request.params.type === 'news' && validateNewsKind(request.body?.newsKind))
     if (invalid) return response.status(400).json({ message: invalid })
   }
   const item = await saveItem(request.params.type, request.params.id, request.body, request.actor, request.body?.changeSummary || '更新内容')

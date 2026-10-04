@@ -92,6 +92,8 @@
 .public-loading button { padding: 9px 16px; color: var(--red); background: transparent; border: 1px solid var(--line); cursor: pointer; }
 .timeline-page .timeline-results { max-width: 1000px; margin: 22px auto 32px; }
 .news-source { color: var(--muted); font: 11px/1.8 ui-sans-serif, sans-serif; }
+.news-topline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.news-kind { display: inline-block; max-width: 100%; margin-left: auto; padding: 3px 9px; border: 1px solid rgba(168,45,44,.2); border-radius: 3px; background: rgba(168,45,44,.07); color: var(--red-deep); font: 12px/1.6 ui-sans-serif, sans-serif; overflow-wrap: anywhere; }
 .news-entry h2 { margin: 12px 0 18px; color: var(--ink); font-size: 26px; line-height: 1.45; }
 .news-entry .source-link { margin-top: 16px; }
 .news-cover { display: block; width: fit-content; max-width: 100%; margin-bottom: 20px; }

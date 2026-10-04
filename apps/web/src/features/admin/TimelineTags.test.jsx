@@ -23,6 +23,41 @@ async function edit(type, item = {}) {
   return { input, onSaved }
 }
 
+it('动态标识可选择常用项、输入自定义文字，和标签独立保存', async () => {
+  const { onSaved } = await edit('news', { tags: ['国风'], sourceName: '官方微博', newsKind: '新歌发布' })
+  const input = screen.getByRole('textbox', { name: '动态标识', exact: true })
+  expect(input.value).toBe('新歌发布')
+  fireEvent.click(screen.getByRole('button', { name: 'MV发布', exact: true }))
+  expect(input.value).toBe('MV发布')
+  expect(contentApi.saveContent).not.toHaveBeenCalled()
+  fireEvent.change(input, { target: { value: '  幕后花絮  ' } })
+  fireEvent.click(screen.getByRole('button', { name: '保存并生成版本' }))
+  await waitFor(() => expect(onSaved).toHaveBeenCalled())
+  expect(contentApi.saveContent).toHaveBeenCalledWith('news', 'news-1', expect.objectContaining({ newsKind: '幕后花絮', tags: ['国风'], sourceName: '官方微博' }))
+})
+
+it('动态标识可清空并保存，超长内容不提交', async () => {
+  const { onSaved } = await edit('news', { newsKind: '新歌发布' })
+  const input = screen.getByRole('textbox', { name: '动态标识', exact: true })
+  fireEvent.change(input, { target: { value: '新'.repeat(21) } })
+  fireEvent.click(screen.getByRole('button', { name: '保存并生成版本' }))
+  expect(screen.getByRole('alert').textContent).toBe('动态标识最多 20 个字符')
+  expect(contentApi.saveContent).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: '清除标识' }))
+  expect(input.value).toBe('')
+  fireEvent.click(screen.getByRole('button', { name: '保存并生成版本' }))
+  await waitFor(() => expect(onSaved).toHaveBeenCalled())
+  expect(contentApi.saveContent).toHaveBeenCalledWith('news', 'news-1', expect.objectContaining({ newsKind: '' }))
+})
+
+it('只读动态预览显示标识，编辑和快捷选择均禁用', () => {
+  render(<ContentFields type="news" value={{ newsKind: 'MV发布' }} disabled />)
+  expect(screen.getByRole('textbox', { name: '动态标识' }).value).toBe('MV发布')
+  expect(screen.getByRole('textbox', { name: '动态标识' }).disabled).toBe(true)
+  expect(screen.getByRole('button', { name: '新歌发布' }).disabled).toBe(true)
+  expect(screen.getByRole('button', { name: '清除标识' }).disabled).toBe(true)
+})
+
 it.each(['news', 'event'])('%s 可用回车和按钮添加多个标签、去重并删除单个标签', async (type) => {
   const { input, onSaved } = await edit(type, { tags: ['音乐会', '南京'] })
   expect(input.value).toBe('')
