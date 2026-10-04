@@ -1,6 +1,6 @@
 // 文件作用：编辑者按授权栏目浏览内容表格，分离查看、编辑、删除与版本操作，避免全内容堆叠。
 import { useCallback, useEffect, useState } from 'react'
-import { Eye, History, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Eye, History, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
 import { contentApi } from '../../lib/api'
 import { useAuth } from '../auth/AuthContext'
 import { ContentEditorDialog } from './ContentEditorDialog'
@@ -18,6 +18,7 @@ export function ContentManagementPage({ module }) {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('active')
   const [category, setCategory] = useState('all')
+  const [sortOrder, setSortOrder] = useState('desc')
   const isAlbum = module.type === 'photo'
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -39,8 +40,14 @@ export function ContentManagementPage({ module }) {
     ? (category === 'all' || normalizePhotoAlbum(item).category === category) && matchesPhotoAlbum(item, query, { includePrivate: true })
     : module.type === 'song' ? matchesSong(item, query)
       : module.type === 'video' ? (category === 'all' || (item.category || 'other') === category) && matchesVideo(item, query)
-        : (item.title || item.artistName || '').includes(query)))
-  const formatTime = (value) => value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '—'
+        : (item.title || item.artistName || '').includes(query))).sort((a, b) => {
+    const aTime = Date.parse(a.updatedAt)
+    const bTime = Date.parse(b.updatedAt)
+    if (!Number.isFinite(aTime)) return Number.isFinite(bTime) ? 1 : 0
+    if (!Number.isFinite(bTime)) return -1
+    return sortOrder === 'asc' ? aTime - bTime : bTime - aTime
+  })
+  const formatTime = (value) => Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '—'
   async function remove() {
     setBusy(true); setError('')
     let locked = false
@@ -58,7 +65,11 @@ export function ContentManagementPage({ module }) {
     <section className="cms-registry">
       <div className="cms-section-title"><h2>内容列表 <span>{items.length}</span></h2><span className={`cms-badge ${canWrite ? 'green' : 'neutral'}`}>{canWrite ? '可编辑' : '只读'}</span></div>
       <div className="cms-toolbar"><label className="cms-search"><Search size={17} /><input aria-label="搜索内容" placeholder={isAlbum || module.type === 'video' ? "搜索标题、作者、时间、地点、关键词" : module.type === 'song' ? "搜索歌名、歌手、专辑、歌词" : "搜索标题"} value={query} onChange={(e) => setQuery(e.target.value)} /></label>{(isAlbum || module.type === 'video') && <select aria-label={isAlbum ? "筛选图集分类" : "筛选视频分类"} value={category} onChange={(e) => setCategory(e.target.value)}><option value="all">全部分类</option>{(isAlbum ? PHOTO_CATEGORIES : VIDEO_CATEGORIES).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select>}<select aria-label="筛选内容状态" value={filter} onChange={(e) => setFilter(e.target.value)}><option value="active">正常内容</option><option value="deleted">已删除</option><option value="all">全部状态</option></select><button className="cms-icon" title="刷新内容" aria-label="刷新内容" disabled={loading} onClick={reload}><RefreshCw size={17} /></button></div>
-      <div className="cms-table-scroll"><table className="cms-table"><thead><tr><th>标题</th><th>{isAlbum ? '图集信息' : '内容编号'}</th><th>更新时间</th><th>状态</th><th>操作</th></tr></thead><tbody>
+      <div className="cms-table-scroll"><table className="cms-table"><thead><tr><th>标题</th><th>{isAlbum ? '图集信息' : '内容编号'}</th><th aria-sort={sortOrder === 'desc' ? 'descending' : 'ascending'}>
+        <button type="button" className="cms-table-sort" title={`点击切换为${sortOrder === 'desc' ? '最早' : '最新'}更新优先`} onClick={() => setSortOrder((order) => order === 'desc' ? 'asc' : 'desc')}>
+          更新时间 {sortOrder === 'desc' ? <ArrowDown size={14} aria-hidden="true" /> : <ArrowUp size={14} aria-hidden="true" />}<span>{sortOrder === 'desc' ? '最新' : '最早'}</span>
+        </button>
+      </th><th>状态</th><th>操作</th></tr></thead><tbody>
         {!loading && visible.map((item) => <tr key={item.id}><td><div className={isAlbum ? 'cms-album-list-title' : ''}>{isAlbum && normalizePhotoAlbum(item).url && <img src={normalizePhotoAlbum(item).url} alt="" loading="lazy" />}<div><strong><SearchHighlight query={query}>{item.title || item.artistName || '未命名'}</SearchHighlight></strong>{isAlbum ? <small><SearchHighlight query={query}>{photoCategoryLabel(normalizePhotoAlbum(item).category)}</SearchHighlight> · {normalizePhotoAlbum(item).images.length} 张</small> : item.artist && <small><SearchHighlight query={query}>{item.artist}</SearchHighlight></small>}</div></div>{module.type === 'song' && <LyricsSearchExcerpt lyrics={item.lyrics} query={query} />}</td><td className="cms-muted">{isAlbum ? <><span><SearchHighlight query={query}>{photoAuthorLabel(normalizePhotoAlbum(item))}</SearchHighlight></span><small><SearchHighlight query={query}>{[item.publishedAt?.replace('T', ' '), item.location].filter(Boolean).join(' · ') || '—'}</SearchHighlight></small></> : item.id}</td><td className="cms-muted">{formatTime(item.updatedAt)}</td><td><span className={`cms-badge ${item.deletedAt ? 'neutral' : 'green'}`}>{item.deletedAt ? '已删除' : '正常'}</span></td><td><div className="cms-row-actions">
           {!item.deletedAt && <button className="cms-icon" title={canWrite ? '编辑' : '查看'} aria-label={`${canWrite ? '编辑' : '查看'} ${item.title || item.artistName}`} onClick={() => setEditing(item)}>{canWrite ? <Pencil size={16} /> : <Eye size={16} />}</button>}
           {auth.can('content.rollback') && <button className="cms-icon" title="历史版本" aria-label="历史版本" onClick={() => setHistory(item)}><History size={16} /></button>}
