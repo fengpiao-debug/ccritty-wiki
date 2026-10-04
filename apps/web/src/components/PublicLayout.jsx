@@ -1,5 +1,6 @@
 // 文件作用：公开 Wiki 的统一页面布局，负责主导航、内容出口和全局播放器。
-import { NavLink, Outlet } from 'react-router-dom'
+import { useLayoutEffect, useRef } from 'react'
+import { NavLink, Outlet, useLocation, useNavigationType } from 'react-router-dom'
 import { Image, Library, CalendarDays, Newspaper, PlaySquare, UserRound } from 'lucide-react'
 import { useContent } from '../features/public/useContent'
 import { useSiteSettings } from '../features/public/useSiteSettings'
@@ -16,6 +17,22 @@ const navItems = [
 ]
 
 export function PublicLayout() {
+  const { pathname, hash } = useLocation()
+  const navigationType = useNavigationType()
+  const previousPath = useRef(pathname)
+  useLayoutEffect(() => {
+    const pageChanged = previousPath.current !== pathname
+    previousPath.current = pathname
+    // 目标栏目渲染后回顶；筛选、锚点和浏览器历史继续保留各自的滚动行为。
+    if (pageChanged && navigationType !== 'POP' && !hash) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    }
+  }, [pathname, hash, navigationType])
+  const scrollCurrentPageToTop = (event, targetPath) => {
+    if (pathname === targetPath && !event.defaultPrevented && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    }
+  }
   const { content, loading, error, hasContent, reload } = useContent()
   const siteSettings = useSiteSettings()
   const { settings } = siteSettings
@@ -27,7 +44,7 @@ export function PublicLayout() {
   return (
     <div className="public-app">
       <header className="public-header">
-        {showBrand ? <NavLink to="/" className="brand-lockup">
+        {showBrand ? <NavLink to="/" className="brand-lockup" onClick={(event) => scrollCurrentPageToTop(event, '/')}>
           <BrandMark src={settings.headerLogoUrl} text={settings.headerMarkText} />
           <span>
             <strong>{settings.headerName || artistName}</strong>
@@ -36,7 +53,7 @@ export function PublicLayout() {
         </NavLink> : <span className="brand-loading" aria-label="网站信息加载中" />}
         <nav className="public-nav" aria-label="主导航">
           {navItems.map(([to, label, Icon]) => (
-            <NavLink key={to} to={to} className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`}>
+            <NavLink key={to} to={to} className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`} onClick={(event) => scrollCurrentPageToTop(event, to)}>
               <Icon size={16} />
               <span>{label}</span>
             </NavLink>
