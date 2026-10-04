@@ -1,15 +1,14 @@
 // 文件作用：apps/web/src/utils/content.js，负责项目公共配置或辅助逻辑。
-import { demoContent } from '../data/demoContent'
 import { parseBilibili } from '@artist-wiki/content-types'
 
 export function normalizeContent(payload) {
   return {
-    profile: payload?.profile || demoContent.profile,
-    news: Array.isArray(payload?.news) ? payload.news : demoContent.news,
-    events: Array.isArray(payload?.events) ? payload.events : demoContent.events,
-    photos: Array.isArray(payload?.photos) ? payload.photos : demoContent.photos,
-    songs: Array.isArray(payload?.songs) ? payload.songs : demoContent.songs,
-    videos: Array.isArray(payload?.videos) ? payload.videos : demoContent.videos,
+    profile: payload?.profile || {},
+    news: Array.isArray(payload?.news) ? payload.news : [],
+    events: Array.isArray(payload?.events) ? payload.events : [],
+    photos: Array.isArray(payload?.photos) ? payload.photos : [],
+    songs: Array.isArray(payload?.songs) ? payload.songs : [],
+    videos: Array.isArray(payload?.videos) ? payload.videos : [],
   }
 }
 

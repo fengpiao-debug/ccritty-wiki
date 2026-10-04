@@ -1,15 +1,15 @@
 // 文件作用：apps/web/src/features/public/HomePage.jsx，负责公开 Wiki 内容展示。
-import { ArrowDown, ArrowUpRight, CalendarDays, Music2 } from 'lucide-react'
+import { ArrowUpRight, CalendarDays, Music2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useContent } from './useContent'
 import { Markdown } from './Markdown'
-import { formatDate } from '../../utils/content'
+import { timelineEntries } from '../../utils/timeline'
 import { normalizePhotoAlbum } from '@artist-wiki/content-types'
 
 export function HomePage() {
   const { content, loading } = useContent()
   const profile = content.profile
-  const latestNews = content.news.slice(0, 3)
+  const latestNews = timelineEntries(content.news, 'publishedAt').slice(0, 3)
 
   return (
     <div className="paper-page">
@@ -46,9 +46,9 @@ export function HomePage() {
         <div className="section-label"><strong>近讯</strong><small>Latest Notes</small></div>
         <div className="latest-list">
           {loading && <p className="empty-copy">正在展开档案...</p>}
-          {latestNews.map((item) => (
+          {latestNews.map(({ item, dateLabel }) => (
             <Link key={item.id} to="/news" className="latest-item">
-              <time>{formatDate(item.publishedAt)}</time>
+              <time>{dateLabel}</time>
               <strong>{item.title}</strong>
               <ArrowUpRight size={17} />
             </Link>

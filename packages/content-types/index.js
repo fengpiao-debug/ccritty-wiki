@@ -1,5 +1,6 @@
 // 文件作用：packages/content-types/index.js，负责项目公共配置或辅助逻辑。
 export { UPLOAD_TYPES, validateUploadMetadata } from './uploads.js'
+export { normalizeTags, validateTags } from './tags.js'
 export { parseBilibili } from './video.js'
 export { DEFAULT_SITE_SETTINGS, isSiteImageUrl, validateSiteSettings } from './siteSettings.js'
 export { VIDEO_CATEGORIES, videoCategoryLabel, fuzzyMatches, matchesSong, matchesVideo, safeMvUrl, validateMediaMetadata } from './mediaCatalog.js'

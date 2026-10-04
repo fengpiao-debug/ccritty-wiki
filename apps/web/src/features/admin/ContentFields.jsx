@@ -28,6 +28,10 @@ export function ContentFields({ type, value, onChange, disabled, onBusyChange, u
       {inputType === 'textarea' ? <textarea disabled={disabled} rows={key === 'markdown' ? 10 : 5} value={value[key] || ''} onChange={(e) => patch({ [key]: e.target.value })} /> :
         <input disabled={disabled} required={key === 'title' || key === 'artistName'} type={inputType} placeholder={placeholder} value={inputType === 'datetime-local' ? toDateTimeInput(value[key]) : inputType === 'date' ? (value[key] || '').slice(0, 10) : value[key] || ''} onChange={(e) => patch(type === 'video' && key === 'bvid' ? { bvid: e.target.value, embedUrl: '' } : { [key]: e.target.value })} />}
     </label>)}
+    {['news', 'event'].includes(type) && <label className="full">标签
+      <input disabled={disabled} placeholder="例如：音乐会，现场，南京" value={Array.isArray(value.tags) ? value.tags.join('，') : value.tags || ''} onChange={(event) => patch({ tags: event.target.value })} />
+      <small className="cms-muted">用逗号或顿号分隔，最多 20 个标签，每个最多 40 字；访客可点击标签查看相关内容。</small>
+    </label>}
     {type === 'video' && <VideoLinkField value={value} disabled={disabled} onParsed={patch} onBusyChange={onBusyChange} />}
     {type !== 'photo' && <label className="full">封面图片地址{!canEditCover && !disabled ? '（需对应图片编辑权限）' : ''}
       <input disabled={disabled || !canEditCover} value={value[imageField] || ''} onChange={(event) => patch({ [imageField]: event.target.value })} /></label>}

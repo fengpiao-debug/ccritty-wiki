@@ -1,5 +1,5 @@
 // 对真实内容服务替换存储依赖，验证版本迁移而不连接本地数据库。
-import test from 'node:test'
+import test, { beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 
@@ -19,6 +19,31 @@ const serviceSource = (await readFile(new URL('./contentService.js', import.meta
   .replace("from '@artist-wiki/content-types'", 'from ' + JSON.stringify(import.meta.resolve('@artist-wiki/content-types')))
 const { saveItem, getItem, listVersions, restoreItem } = await import(moduleUrl(serviceSource))
 const actor = { username: 'test-editor' }
+beforeEach(() => { memory.state.content = { photos: [] }; memory.state.versions = [] })
+
+test('news and event tags survive save/reload, partial edits and restoring tagged or legacy versions', async () => {
+  for (const [type, collection] of [['news', 'news'], ['event', 'events']]) {
+    memory.state.content[collection] = [{ id: type + '-tags', type, title: '旧内容' }]
+    const id = type + '-tags'
+    await saveItem(type, id, { tags: '音乐会， 南京、音乐会;现场' }, actor)
+    memory.reload()
+    assert.deepEqual(getItem(type, id).tags, ['音乐会', '南京', '现场'])
+    const tagged = memory.state.versions.find((version) => version.contentId === id && version.snapshot.tags?.length)
+    const legacy = memory.state.versions.find((version) => version.contentId === id && !version.snapshot.tags)
+    await saveItem(type, id, { title: '只改标题' }, actor)
+    assert.deepEqual(getItem(type, id).tags, ['音乐会', '南京', '现场'])
+    await saveItem(type, id, { tags: [] }, actor)
+    memory.reload()
+    assert.deepEqual(getItem(type, id).tags, [])
+    await restoreItem(type, id, tagged.id, actor)
+    memory.reload()
+    assert.deepEqual(getItem(type, id).tags, ['音乐会', '南京', '现场'])
+    await restoreItem(type, id, legacy.id, actor)
+    memory.reload()
+    assert.deepEqual(getItem(type, id).tags, [])
+    assert.equal(getItem(type, id).title, '旧内容')
+  }
+})
 
 test('restoring songs and videos replaces fields absent from the old snapshot and survives reload', async () => {
   for (const [type, collection] of [['song', 'songs'], ['video', 'videos']]) {

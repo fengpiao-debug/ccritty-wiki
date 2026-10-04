@@ -16,21 +16,24 @@ const navItems = [
 ]
 
 export function PublicLayout() {
-  const { content } = useContent()
+  const { content, loading, error, hasContent, reload } = useContent()
   const siteSettings = useSiteSettings()
   const { settings } = siteSettings
   const artistName = content.profile?.artistName || '歌手 Wiki'
+  const pending = loading || siteSettings.loading
+  const loadError = (!hasContent && error) || (!siteSettings.ready && siteSettings.error)
+  const showBrand = siteSettings.ready && !loading && !loadError
 
   return (
     <div className="public-app">
       <header className="public-header">
-        <NavLink to="/" className="brand-lockup">
+        {showBrand ? <NavLink to="/" className="brand-lockup">
           <BrandMark src={settings.headerLogoUrl} text={settings.headerMarkText} />
           <span>
             <strong>{settings.headerName || artistName}</strong>
             {settings.headerSubtitle && <small>{settings.headerSubtitle}</small>}
           </span>
-        </NavLink>
+        </NavLink> : <span className="brand-loading" aria-label="网站信息加载中" />}
         <nav className="public-nav" aria-label="主导航">
           {navItems.map(([to, label, Icon]) => (
             <NavLink key={to} to={to} className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`}>
@@ -41,9 +44,16 @@ export function PublicLayout() {
         </nav>
       </header>
       <main className="public-main">
-        <Outlet context={siteSettings} />
+        {pending ? <div className="public-loading" role="status" aria-busy="true">
+          <span className="loading-line" aria-hidden="true" />
+          <span className="loading-line" aria-hidden="true" />
+          <p>正在加载档案…</p>
+        </div> : loadError ? <div className="public-loading" role="alert">
+          <p>档案暂时无法加载，请重试。</p>
+          <button type="button" onClick={() => { reload(); siteSettings.reload() }}>重新加载</button>
+        </div> : <Outlet context={siteSettings} />}
       </main>
-      <PublicFooter settings={siteSettings.settings} />
+      {siteSettings.ready && <PublicFooter settings={siteSettings.settings} />}
     </div>
   )
 }

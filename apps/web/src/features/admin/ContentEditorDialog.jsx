@@ -4,7 +4,7 @@ import { Save } from 'lucide-react'
 import { contentApi } from '../../lib/api'
 import { AdminDialog } from './AdminDialog'
 import { ContentFields } from './ContentFields'
-import { normalizePhotoAlbum, validatePhotoAlbum, validateMediaMetadata } from '@artist-wiki/content-types'
+import { normalizePhotoAlbum, validatePhotoAlbum, validateMediaMetadata, normalizeTags, validateTags } from '@artist-wiki/content-types'
 
 export function ContentEditorDialog({ item, module, canWrite, onClose, onSaved }) {
   const [draft, setDraft] = useState(() => module.type === 'photo' ? normalizePhotoAlbum(item) : item)
@@ -44,8 +44,13 @@ export function ContentEditorDialog({ item, module, canWrite, onClose, onSaved }
       const invalid = validateMediaMetadata(module.type, draft)
       if (invalid) { setError(invalid); return }
     }
+    const hasTags = ['news', 'event'].includes(module.type)
+    if (hasTags) {
+      const invalid = validateTags(draft.tags)
+      if (invalid) { setError(invalid); return }
+    }
     setBusy(true); setError('')
-    try { await contentApi.saveContent(module.type, item.id, draft); ownsLock.current = false; onSaved() }
+    try { await contentApi.saveContent(module.type, item.id, hasTags ? { ...draft, tags: normalizeTags(draft.tags) } : draft); ownsLock.current = false; onSaved() }
     catch (err) { setError(err.message); if (err.status === 423 || err.status === 403) setLocked(false) }
     finally { setBusy(false) }
   }
