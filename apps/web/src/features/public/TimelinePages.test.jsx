@@ -1,7 +1,7 @@
 // 验证时间线搜索、排序和图片展示，使用模拟内容，避免修改真实资料。
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render as renderView, screen, within } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { cleanup, fireEvent, render as renderView, screen, waitFor, within } from '@testing-library/react'
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { NewsPage } from './NewsPage'
 import { EventsPage } from './EventsPage'
 
@@ -74,6 +74,77 @@ it('动态显示可搜索的类型标识，旧记录不凭空添加，保留来�
   expect(screen.getByText('新歌发布', { selector: 'mark' })).toBeTruthy()
   fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'mv发布' } })
   expect(titles()).toEqual(['影像消息'])
+})
+
+it('点击动态标识精确筛选，同步选中状态并支持搜索、排序、标签和清除', () => {
+  fixture.content.news = [
+    { id: 'old', title: '成都旧消息', newsKind: ' 演出资讯 ', tags: ['现场'], publishedAt: '2025-01-01' },
+    { id: 'new', title: '南京新消息', newsKind: '演出资讯', tags: ['南京'], publishedAt: '2026-01-01' },
+    { id: 'other', title: '成都直播消息', newsKind: '线上演出资讯', tags: ['现场'], publishedAt: '2026-02-01' },
+    { id: 'legacy', title: '未标注消息', markdown: '演出资讯' },
+    { id: 'custom', title: '自定义消息', newsKind: '幕后 & 花絮' },
+  ]
+  const original = structuredClone(fixture.content.news)
+  render(<NewsPage />)
+  fireEvent.click(screen.getAllByRole('button', { name: '动态标识：演出资讯' })[0])
+  expect(titles()).toEqual(['南京新消息', '成都旧消息'])
+  const filter = screen.getByRole('group', { name: '动态标识筛选' })
+  expect(within(filter).getByRole('button', { name: '演出资讯', exact: true }).getAttribute('aria-pressed')).toBe('true')
+  for (const badge of screen.getAllByRole('button', { name: '动态标识：演出资讯' })) expect(badge.getAttribute('aria-pressed')).toBe('true')
+  expect(screen.getByRole('status').textContent).toBe('共 2 条动态 · 标识：演出资讯')
+  fireEvent.click(screen.getByRole('button', { name: '最新' }))
+  expect(titles()).toEqual(['成都旧消息', '南京新消息'])
+  fireEvent.change(screen.getByRole('searchbox'), { target: { value: '南京' } })
+  expect(titles()).toEqual(['南京新消息'])
+  fireEvent.click(screen.getByRole('button', { name: '清空动态搜索' }))
+  fireEvent.click(screen.getByRole('button', { name: '查看标签：现场' }))
+  expect(titles()).toEqual(['成都旧消息'])
+  fireEvent.click(screen.getByRole('button', { name: '全部标识' }))
+  expect(titles()).toEqual(['成都旧消息', '成都直播消息'])
+  fireEvent.click(screen.getByRole('button', { name: '全部标签' }))
+  expect(titles()).toHaveLength(5)
+  fireEvent.click(screen.getByRole('button', { name: '动态标识：幕后 & 花絮' }))
+  expect(titles()).toEqual(['自定义消息'])
+  expect(fixture.content.news).toEqual(original)
+})
+
+it('动态标识支持直接链接、独立清除和浏览器后退，保留标签与其他参数', async () => {
+  fixture.content.news = [
+    { id: 'match', title: '自定义消息', newsKind: '幕后 & 花絮', tags: ['现场'] },
+    { id: 'tag', title: '仅标签匹配', newsKind: '演出资讯', tags: ['现场'] },
+    { id: 'kind', title: '仅标识匹配', newsKind: '幕后 & 花絮' },
+  ]
+  function NavigationProbe() {
+    const location = useLocation()
+    const navigate = useNavigate()
+    return <><output data-testid="location">{location.search}</output><button onClick={() => navigate(-1)}>后退</button></>
+  }
+  render(<><NewsPage /><NavigationProbe /></>, '/news?' + new URLSearchParams({ kind: '幕后 & 花絮', tag: '现场', ref: 'archive' }))
+  expect(titles()).toEqual(['自定义消息'])
+  fireEvent.click(screen.getByRole('button', { name: '全部标识' }))
+  expect(titles()).toEqual(['自定义消息', '仅标签匹配'])
+  let params = new URLSearchParams(screen.getByTestId('location').textContent)
+  expect(params.has('kind')).toBe(false)
+  expect(params.get('tag')).toBe('现场')
+  expect(params.get('ref')).toBe('archive')
+  fireEvent.click(screen.getByRole('button', { name: '后退' }))
+  await waitFor(() => expect(titles()).toEqual(['自定义消息']))
+  fireEvent.click(screen.getByRole('button', { name: '全部标签' }))
+  expect(titles()).toEqual(['自定义消息', '仅标识匹配'])
+  params = new URLSearchParams(screen.getByTestId('location').textContent)
+  expect(params.get('kind')).toBe('幕后 & 花絮')
+  expect(params.has('tag')).toBe(false)
+})
+
+it('不存在的动态标识显示空结果，清除后恢复无标识旧记录', () => {
+  fixture.content.news = [{ id: 'legacy', title: '历史消息' }]
+  render(<NewsPage />, '/news?kind=' + encodeURIComponent('已删除标识'))
+  expect(screen.queryAllByRole('heading', { level: 2 })).toHaveLength(0)
+  expect(screen.getByRole('status').textContent).toBe('共 0 条动态 · 标识：已删除标识')
+  expect(screen.getByText('没有找到匹配的动态，试试其他标识、标签或清空搜索。')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: '全部标识' }))
+  expect(titles()).toEqual(['历史消息'])
+  expect(screen.queryByRole('group', { name: '动态标识筛选' })).toBeNull()
 })
 
 it('旧活动类型变成可点击标签，与新标签统一筛选且不重复展示', () => {

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { normalizeTags } from '@artist-wiki/content-types'
 import { SearchHighlight } from '../../components/SearchHighlight'
 
-export function TimelineTools({ label, placeholder, query, setQuery, sortOrder, setSortOrder, tags, selectedTag, setSelectedTag }) {
+export function TimelineTools({ label, placeholder, query, setQuery, sortOrder, setSortOrder, tags, selectedTag, setSelectedTag, children }) {
   const newestFirst = sortOrder === 'desc'
   const SortIcon = newestFirst ? ArrowDown : ArrowUp
   return <div className="timeline-controls">
@@ -20,6 +20,7 @@ export function TimelineTools({ label, placeholder, query, setQuery, sortOrder, 
         {query && <button type="button" className="album-icon" aria-label={`清空${label}搜索`} onClick={() => setQuery('')}><X size={16} /></button>}
       </label>
     </div>
+    {children}
     {(tags.length > 0 || selectedTag) && <div className="timeline-tag-filter" role="group" aria-label={`${label}标签筛选`}>
       <span>标签</span>
       <button type="button" aria-pressed={!selectedTag} onClick={() => setSelectedTag('')}>全部标签</button>
