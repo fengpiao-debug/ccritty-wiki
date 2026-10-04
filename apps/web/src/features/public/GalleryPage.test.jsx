@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { PHOTO_CATEGORIES } from '@artist-wiki/content-types'
 import { GalleryPage } from './GalleryPage'
 
 const fixture = vi.hoisted(() => ({ photos: [] }))
@@ -20,11 +21,51 @@ it('filters by metadata, per-image keywords and category, but excludes hidden fa
   expect(screen.getByRole('button', { name: '打开图集 现场图集' })).toBeTruthy()
   expect(screen.getByRole('button', { name: '打开图集 现场图集' }).querySelector('mark').textContent).toBe('杭州')
   expect(screen.queryByRole('button', { name: '打开图集 旧照片' })).toBeNull()
-  fireEvent.click(screen.getByRole('button', { name: '生活照（CC发布的）' }))
+  fireEvent.click(screen.getByRole('button', { name: PHOTO_CATEGORIES.find((category) => category.value === 'life').label, exact: true }))
   expect(screen.getByText('没有找到匹配的图集，试试其他关键词。')).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: '重置筛选' }))
   fireEvent.change(screen.getByLabelText('搜索图集'), { target: { value: 'private123' } })
   expect(screen.queryByRole('button', { name: '打开图集 现场图集' })).toBeNull()
+})
+
+it('toggles chronological order and keeps missing or invalid dates last without changing source records', () => {
+  fixture.photos = [
+    { id: 'missing', title: '无日期' },
+    { id: 'earliest', title: '最早图集', publishedAt: '2025-09-14T19:30' },
+    { id: 'invalid', title: '无效日期', publishedAt: 'invalid' },
+    { id: 'latest', title: '最新图集', publishedAt: '2025-11-22T19:30' },
+    { id: 'same', title: '同一时间', publishedAt: '2025-11-22T19:30' },
+  ]
+  const original = structuredClone(fixture.photos)
+  render(<GalleryPage />)
+  const titles = () => screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
+  const sorting = within(screen.getByRole('group', { name: '图集时间排序' }))
+  expect(titles()).toEqual(['最新图集', '同一时间', '最早图集', '无日期', '无效日期'])
+  fireEvent.click(sorting.getByRole('button', { name: '最新' }))
+  expect(titles()).toEqual(['最早图集', '最新图集', '同一时间', '无日期', '无效日期'])
+  fireEvent.click(sorting.getByRole('button', { name: '最早' }))
+  expect(titles()).toEqual(['最新图集', '同一时间', '最早图集', '无日期', '无效日期'])
+  expect(fixture.photos).toEqual(original)
+})
+
+it('combines sorting with search and category filters and retains the order when filters reset', () => {
+  fixture.photos = [
+    { id: 'new', title: '杭州新现场', category: 'event', publishedAt: '2026-10-02T20:00' },
+    { id: 'old', title: '杭州旧现场', category: 'event', publishedAt: '2026-10-02T19:00' },
+    { id: 'life', title: '杭州日常', category: 'life', publishedAt: '2026-10-01' },
+    { id: 'other', title: '上海现场', category: 'event', publishedAt: '2026-09-01' },
+    { id: 'missing', title: '杭州待补日期', category: 'event' },
+  ]
+  render(<GalleryPage />)
+  const titles = () => screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
+  fireEvent.change(screen.getByLabelText('搜索图集'), { target: { value: '杭州' } })
+  fireEvent.click(screen.getByRole('button', { name: PHOTO_CATEGORIES.find((category) => category.value === 'event').label, exact: true }))
+  expect(titles()).toEqual(['杭州新现场', '杭州旧现场', '杭州待补日期'])
+  fireEvent.click(screen.getByRole('button', { name: '最新', exact: true }))
+  expect(titles()).toEqual(['杭州旧现场', '杭州新现场', '杭州待补日期'])
+  fireEvent.click(screen.getByRole('button', { name: '重置筛选' }))
+  expect(titles()).toEqual(['上海现场', '杭州日常', '杭州旧现场', '杭州新现场', '杭州待补日期'])
+  expect(screen.getByRole('button', { name: '最早', exact: true })).toBeTruthy()
 })
 
 it('opens the cover first, browses all photos and restores focus on close', () => {

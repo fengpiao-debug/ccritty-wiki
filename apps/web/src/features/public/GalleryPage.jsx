@@ -1,10 +1,11 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowLeft, ArrowRight, Images, Search, X } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Images, Search, X } from 'lucide-react'
 import { PHOTO_CATEGORIES, normalizePhotoAlbum, matchesPhotoAlbum, photoCategoryLabel, photoAuthorLabel } from '@artist-wiki/content-types'
 import { useContent } from './useContent'
 import { PageHeading } from './NewsPage'
 import { SearchHighlight } from '../../components/SearchHighlight'
+import { timelineEntries } from '../../utils/timeline'
 
 const displayTime = (value) => value ? value.slice(0, 16).replace('T', ' ') : ''
 
@@ -48,18 +49,37 @@ export function GalleryPage() {
   const [active, setActive] = useState(null)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
+  const [sortOrder, setSortOrder] = useState('desc')
+  const newestFirst = sortOrder === 'desc'
+  const SortIcon = newestFirst ? ArrowDown : ArrowUp
   const albums = content.photos.map(normalizePhotoAlbum)
-  const visible = albums.filter((album) => (category === 'all' || album.category === category) && matchesPhotoAlbum(album, query))
+  const visible = timelineEntries(albums, 'publishedAt', sortOrder).map(({ item }) => item)
+    .filter((album) => (category === 'all' || album.category === category) && matchesPhotoAlbum(album, query))
   return <div className="content-page album-page">
     <PageHeading title="影卷" subtitle="Visual Chronicle" />
     <div className="album-tools"><div className="album-filters" aria-label="图集分类">
       {[{ value: 'all', label: '全部' }, ...PHOTO_CATEGORIES].map((item) => <button type="button" key={item.value} aria-pressed={category === item.value} onClick={() => setCategory(item.value)}>{item.label}</button>)}
     </div><label className="album-search"><Search size={18} /><input aria-label="搜索图集" placeholder="搜索标题、作者、时间、地点、关键词…" value={query} onChange={(e) => setQuery(e.target.value)} />{query && <button type="button" className="album-icon" aria-label="清空搜索" onClick={() => setQuery('')}><X size={16} /></button>}</label></div>
-    <p className="album-results" role="status">{loading && !albums.length ? '正在展开影卷…' : '共 ' + visible.length + ' 组图集'}{(query || category !== 'all') && <button type="button" onClick={() => { setQuery(''); setCategory('all') }}>重置筛选</button>}</p>
+    <div className="album-results-bar">
+      <p className="album-results" role="status">{loading && !albums.length ? '正在展开影卷…' : '共 ' + visible.length + ' 组图集'}{(query || category !== 'all') && <button type="button" onClick={() => { setQuery(''); setCategory('all') }}>重置筛选</button>}</p>
+      <div role="group" aria-label="图集时间排序">
+        <button type="button" className="timeline-sort-toggle" title={`按图集时间排序，点击切换为${newestFirst ? '最早在前' : '最新在前'}`} onClick={() => setSortOrder((current) => current === 'desc' ? 'asc' : 'desc')}>
+          <SortIcon size={16} aria-hidden="true" /><span>{newestFirst ? '最新' : '最早'}</span>
+        </button>
+      </div>
+    </div>
     <div className="album-grid">{visible.map((album) => <article className="album-card" key={album.id}>
       <button type="button" className="album-card-open" aria-label={'打开图集 ' + (album.title || '未命名图集')} onClick={() => setActive(album)}>
         <div className="album-cover">{album.url ? <img src={album.url} alt={album.title || '图集封面'} loading="lazy" /> : <span className="album-cover-empty">影卷</span>}<span className="album-count"><Images size={14} />{album.images.length} 张</span></div>
-        <div className="album-card-copy"><span className="album-category"><SearchHighlight query={query}>{photoCategoryLabel(album.category)}</SearchHighlight></span><h2><SearchHighlight query={query}>{album.title || '未命名图集'}</SearchHighlight></h2>{album.description && <p><SearchHighlight query={query}>{album.description}</SearchHighlight></p>}<div className="album-card-meta">{album.publishedAt && <time dateTime={album.publishedAt}><SearchHighlight query={query}>{displayTime(album.publishedAt)}</SearchHighlight></time>}{album.location && <span><SearchHighlight query={query}>{album.location}</SearchHighlight></span>}</div>{photoAuthorLabel(album) && <small><SearchHighlight query={query}>{photoAuthorLabel(album)}</SearchHighlight></small>}</div>
+        <div className="album-card-copy">
+          <span className="album-category"><SearchHighlight query={query}>{photoCategoryLabel(album.category)}</SearchHighlight></span>
+          <h2 title={album.title || '未命名图集'}><SearchHighlight query={query}>{album.title || '未命名图集'}</SearchHighlight></h2>
+          {album.description && <p><SearchHighlight query={query}>{album.description}</SearchHighlight></p>}
+          <div className="album-card-footer">
+            <div className="album-card-meta">{album.publishedAt && <time dateTime={album.publishedAt}><SearchHighlight query={query}>{displayTime(album.publishedAt)}</SearchHighlight></time>}{album.location && <span title={album.location}><SearchHighlight query={query}>{album.location}</SearchHighlight></span>}</div>
+            {photoAuthorLabel(album) && <small><SearchHighlight query={query}>{photoAuthorLabel(album)}</SearchHighlight></small>}
+          </div>
+        </div>
       </button>
     </article>)}</div>
     {!loading && !visible.length && <div className="album-empty"><Images size={32} /><p>{albums.length ? '没有找到匹配的图集，试试其他关键词。' : '影卷尚未收录图集。'}</p></div>}
