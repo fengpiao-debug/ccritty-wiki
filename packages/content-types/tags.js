@@ -5,6 +5,11 @@ export function normalizeTags(value) {
     .flatMap((tag) => tag.split(/[,，、;；\n\r]+/u)).map((tag) => tag.trim()).filter(Boolean))]
 }
 
+// 旧活动分类与新标签统一展示；保存时再转为唯一的 tags 字段。
+export function getTimelineTags(item) {
+  return normalizeTags([...normalizeTags(item?.category), ...normalizeTags(item?.tags)])
+}
+
 export function validateTags(value) {
   if (value == null) return ''
   if (typeof value !== 'string' && (!Array.isArray(value) || value.some((tag) => typeof tag !== 'string'))) return '标签格式不正确'

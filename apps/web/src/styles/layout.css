@@ -111,7 +111,7 @@
 .event-cover { display: block; margin-top: 14px; }
 .event-cover img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 3px; }
 .event-topline { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; color: var(--muted); font: 11px/1.5 ui-sans-serif, sans-serif; }
-.event-category { margin-left: auto; }
+.event-topline .timeline-tags { margin: 0 0 0 auto; justify-content: flex-end; }
 .event-body h2 { margin: 12px 0 10px; font-size: 26px; line-height: 1.45; }
 .event-location { display: flex; gap: 6px; align-items: flex-start; color: var(--muted); font-size: 13px; line-height: 1.7; }
 .event-location svg { flex: 0 0 14px; margin-top: 4px; }

@@ -1,5 +1,6 @@
 // 文件作用：apps/web/src/features/public/EventsPage.jsx，负责公开 Wiki 内容展示。
 import { MapPin, Ticket } from 'lucide-react'
+import { getTimelineTags } from '@artist-wiki/content-types'
 import { useContent } from './useContent'
 import { Markdown } from './Markdown'
 import { PageHeading } from './NewsPage'
@@ -24,14 +25,13 @@ export function EventsPage() {
             <time className="event-date" dateTime={timestamp === null ? undefined : event.startsAt}><SearchHighlight query={query}>{dateLabel}</SearchHighlight></time>
             <div className="event-dot" aria-hidden="true"></div>
             <div className="event-body">
-              {(event.status || event.category) && <div className="event-topline">
+              {(event.status || getTimelineTags(event).length > 0) && <div className="event-topline">
                 {event.status && <span className={'status-pill status-' + event.status}>{event.status === 'upcoming' ? '即将到来' : event.status === 'sold-out' ? '已售罄' : event.status}</span>}
-                {event.category && <span className="event-category"><SearchHighlight query={query}>{event.category}</SearchHighlight></span>}
+                <TimelineTags {...timeline} tags={getTimelineTags(event)} />
               </div>}
               <div className={`event-content${event.cover ? ' has-cover' : ''}`}>
                 <div className="event-copy">
                   <h2><SearchHighlight query={query}>{event.title}</SearchHighlight></h2>
-                  <TimelineTags {...timeline} tags={event.tags} />
                   <p className="event-location"><MapPin size={14} /><span><SearchHighlight query={query}>{[event.city, event.venue].filter(Boolean).join(' · ')}</SearchHighlight></span></p>
                   <Markdown>{event.markdown}</Markdown>
                   {event.ticketUrl && <a className="source-link" href={event.ticketUrl} target="_blank" rel="noreferrer"><Ticket size={14} />购票 / 报名</a>}

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ContentEditorDialog } from './ContentEditorDialog'
+import { ContentFields } from './ContentFields'
 import { contentApi } from '../../lib/api'
 
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ can: () => true }) }))
@@ -14,35 +15,82 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-it.each(['news', 'event'])('%s 编辑标签规范化保存，超长标签阻止提交', async (type) => {
+async function edit(type, item = {}) {
   const onSaved = vi.fn()
-  render(<ContentEditorDialog item={{ id: type + '-1', title: '测试记录', tags: ['音乐会', '南京'] }} module={{ type, label: '内容管理' }} canWrite onClose={vi.fn()} onSaved={onSaved} />)
-  const input = screen.getByRole('textbox', { name: /^标签/ })
+  render(<ContentEditorDialog item={{ id: type + '-1', title: '测试记录', ...item }} module={{ type, label: '内容管理' }} canWrite onClose={vi.fn()} onSaved={onSaved} />)
+  const input = screen.getByRole('textbox', { name: /标签（可添加多个）/ })
   await waitFor(() => expect(input.disabled).toBe(false))
-  expect(input.value).toBe('音乐会，南京')
-  fireEvent.change(input, { target: { value: 'a'.repeat(41) } })
-  fireEvent.click(screen.getByRole('button', { name: '保存并生成版本' }))
-  expect(await screen.findByRole('alert')).toHaveProperty('textContent', '每个标签最多 40 个字符')
+  return { input, onSaved }
+}
+
+it.each(['news', 'event'])('%s 可用回车和按钮添加多个标签、去重并删除单个标签', async (type) => {
+  const { input, onSaved } = await edit(type, { tags: ['音乐会', '南京'] })
+  expect(input.value).toBe('')
+  expect(screen.getByRole('button', { name: '删除标签：音乐会' })).toBeTruthy()
+  fireEvent.change(input, { target: { value: '音乐会， 国风、现场' } })
+  fireEvent.keyDown(input, { key: 'Enter' })
+  expect(input.value).toBe('')
   expect(contentApi.saveContent).not.toHaveBeenCalled()
-  fireEvent.change(input, { target: { value: '音乐会， 南京、现场，音乐会' } })
+  fireEvent.change(input, { target: { value: '杭州' } })
+  fireEvent.click(screen.getByRole('button', { name: '添加标签' }))
+  fireEvent.click(screen.getByRole('button', { name: '删除标签：南京' }))
   fireEvent.click(screen.getByRole('button', { name: '保存并生成版本' }))
   await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1))
-  expect(contentApi.saveContent).toHaveBeenLastCalledWith(type, type + '-1', expect.objectContaining({ tags: ['音乐会', '南京', '现场'] }))
+  expect(contentApi.saveContent).toHaveBeenLastCalledWith(type, type + '-1', expect.objectContaining({ tags: ['音乐会', '国风', '现场', '杭州'] }))
 })
 
-it('只读模式可以查看标签但不能修改', () => {
-  render(<ContentEditorDialog item={{ id: 'news-1', tags: ['音乐会'] }} module={{ type: 'news', label: '动态' }} canWrite={false} onClose={vi.fn()} />)
-  expect(screen.getByRole('textbox', { name: /^标签/ }).disabled).toBe(true)
-  expect(screen.queryByRole('button', { name: '保存并生成版本' })).toBeNull()
-})
-
-it.each(['news', 'event'])('%s 清空标签后保存空列表', async (type) => {
-  const onSaved = vi.fn()
-  render(<ContentEditorDialog item={{ id: 'tagged', title: '已有记录', tags: ['音乐会'] }} module={{ type, label: '内容管理' }} canWrite onClose={vi.fn()} onSaved={onSaved} />)
-  const input = screen.getByRole('textbox', { name: /^标签/ })
-  await waitFor(() => expect(input.disabled).toBe(false))
-  fireEvent.change(input, { target: { value: '' } })
+it('旧活动类型显示为标签，输入未按添加直接保存也不会丢失', async () => {
+  const { input, onSaved } = await edit('event', { category: '拼盘演出', tags: [] })
+  expect(screen.queryByRole('textbox', { name: '活动类型' })).toBeNull()
+  expect(screen.getByRole('button', { name: '删除标签：拼盘演出' })).toBeTruthy()
+  fireEvent.change(input, { target: { value: '南京，国风' } })
   fireEvent.click(screen.getByRole('button', { name: '保存并生成版本' }))
   await waitFor(() => expect(onSaved).toHaveBeenCalled())
-  expect(contentApi.saveContent).toHaveBeenCalledWith(type, 'tagged', expect.objectContaining({ tags: [] }))
+  const payload = contentApi.saveContent.mock.calls[0][2]
+  expect(payload.tags).toEqual(['拼盘演出', '南京', '国风'])
+  expect(payload).not.toHaveProperty('category')
+  expect(payload).not.toHaveProperty('pendingTag')
+})
+
+it.each(['news', 'event'])('%s 标签超长或超过数量时阻止添加和保存，修正后可保存', async (type) => {
+  const { input, onSaved } = await edit(type)
+  for (const [value, message] of [['a'.repeat(41), '每个标签最多 40 个字符'], [Array.from({ length: 21 }, (_, i) => '标签' + i).join('，'), '最多添加 20 个标签']]) {
+    fireEvent.change(input, { target: { value } })
+    expect(screen.getByRole('alert').textContent).toBe(message)
+    expect(screen.getByRole('button', { name: '添加标签' }).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: '保存并生成版本' }))
+    expect(contentApi.saveContent).not.toHaveBeenCalled()
+  }
+  fireEvent.change(input, { target: { value: '现场' } })
+  expect(screen.queryByRole('alert')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: '保存并生成版本' }))
+  await waitFor(() => expect(onSaved).toHaveBeenCalled())
+})
+
+it('中文输入法确认回车不提前添加标签', async () => {
+  const { input } = await edit('event')
+  fireEvent.change(input, { target: { value: '国风' } })
+  fireEvent.keyDown(input, { key: 'Enter', isComposing: true })
+  expect(screen.queryByRole('button', { name: '删除标签：国风' })).toBeNull()
+  expect(input.value).toBe('国风')
+  expect(contentApi.saveContent).not.toHaveBeenCalled()
+  fireEvent.keyDown(input, { key: 'Enter' })
+  expect(screen.getByRole('button', { name: '删除标签：国风' })).toBeTruthy()
+})
+
+it('只读历史版本兼容旧类型字段，输入和删除均禁用', () => {
+  render(<ContentFields type="event" value={{ category: '拼盘演出', tags: ['国风'] }} disabled />)
+  expect(screen.getByRole('textbox', { name: /活动标签/ }).disabled).toBe(true)
+  expect(screen.getByRole('button', { name: '删除标签：拼盘演出' }).disabled).toBe(true)
+  expect(screen.getByRole('button', { name: '删除标签：国风' }).disabled).toBe(true)
+  expect(screen.getByRole('button', { name: '添加标签' }).disabled).toBe(true)
+})
+
+it.each(['news', 'event'])('%s 可删除全部标签，旧活动类型不会保留在提交内容中', async (type) => {
+  const { onSaved } = await edit(type, { tags: ['音乐会'], ...(type === 'event' ? { category: '拼盘演出' } : {}) })
+  for (const button of screen.getAllByRole('button', { name: /^删除标签：/ })) fireEvent.click(button)
+  fireEvent.click(screen.getByRole('button', { name: '保存并生成版本' }))
+  await waitFor(() => expect(onSaved).toHaveBeenCalled())
+  expect(contentApi.saveContent).toHaveBeenCalledWith(type, type + '-1', expect.objectContaining({ tags: [] }))
+  expect(contentApi.saveContent.mock.calls[0][2]).not.toHaveProperty('category')
 })

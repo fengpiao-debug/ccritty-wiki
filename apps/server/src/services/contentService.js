@@ -1,6 +1,6 @@
 // 文件作用：apps/server/src/services/contentService.js，负责后端服务的独立功能模块。
 import { cloneState, getState, nextId, persist } from '../store.js'
-import { normalizePhotoAlbum, normalizeTags } from '@artist-wiki/content-types'
+import { normalizePhotoAlbum, normalizeTags, getTimelineTags } from '@artist-wiki/content-types'
 
 const collectionFor = { profile: 'profile', news: 'news', event: 'events', photo: 'photos', song: 'songs', video: 'videos' }
 
@@ -29,7 +29,13 @@ export async function saveItem(type, id, payload, actor, summary = '更新内容
   const previous = getItem(type, id)
   const now = new Date().toISOString()
   const merged = { ...(replace ? {} : previous || {}), ...payload, id, type, createdAt: previous?.createdAt || now, updatedAt: now }
-  if (['news', 'event'].includes(type)) merged.tags = normalizeTags(merged.tags)
+  if (type === 'news') merged.tags = normalizeTags(merged.tags)
+  if (type === 'event') {
+    // 新编辑器显式提交 tags；旧客户端和旧版本快照仍可携带 category。
+    const tagSource = Object.hasOwn(payload || {}, 'tags') ? payload : merged
+    merged.tags = getTimelineTags(tagSource)
+    delete merged.category
+  }
   const item = type === 'photo' ? normalizePhotoAlbum(merged) : merged
   const versions = getState().versions.filter((version) => version.type === type && version.contentId === id)
   // 首次编辑旧数据时先保留原始快照，否则删除或第一次保存后无法还原初始内容。

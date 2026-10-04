@@ -1,5 +1,6 @@
 // 文件作用：apps/web/src/features/public/NewsPage.jsx，负责公开 Wiki 内容展示。
 import { ExternalLink } from 'lucide-react'
+import { getTimelineTags } from '@artist-wiki/content-types'
 import { useContent } from './useContent'
 import { Markdown } from './Markdown'
 import { useTimeline } from './useTimeline'
@@ -25,7 +26,7 @@ export function NewsPage() {
             <article className="news-entry">
               <span className="news-source"><SearchHighlight query={query}>{item.sourceName || '站内记录'}</SearchHighlight></span>
               <h2><SearchHighlight query={query}>{item.title}</SearchHighlight></h2>
-              <TimelineTags {...timeline} tags={item.tags} />
+              <TimelineTags {...timeline} tags={getTimelineTags(item)} />
               {item.cover && <a className="news-cover" href={item.cover} target="_blank" rel="noreferrer" aria-label={`查看${item.title}配图原图`}><img src={item.cover} alt={`${item.title}配图`} loading="lazy" /></a>}
               <Markdown>{item.markdown}</Markdown>
               {item.sourceUrl && <a className="source-link" href={item.sourceUrl} target="_blank" rel="noreferrer">查看来源 <ExternalLink size={14} /></a>}

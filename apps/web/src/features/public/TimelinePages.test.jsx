@@ -53,6 +53,31 @@ const timelines = [
 ]
 const titles = () => screen.getAllByRole('heading', { level: 2 }).map((node) => node.textContent)
 
+it('旧活动类型变成可点击标签，与新标签统一筛选且不重复展示', () => {
+  fixture.content.events = [
+    { id: 'legacy', title: '旧分类活动', startsAt: '2025-01-01', category: '拼盘演出', tags: [] },
+    { id: 'both', title: '分类与标签都有', startsAt: '2025-02-01', category: '拼盘演出', tags: ['拼盘演出', '南京'] },
+    { id: 'modern', title: '新标签活动', startsAt: '2025-03-01', tags: ['拼盘演出', '国风'] },
+    { id: 'other', title: '不同分类活动', startsAt: '2025-04-01', category: '线上拼盘演出' },
+  ]
+  render(<EventsPage />)
+  expect(screen.getAllByRole('button', { name: '查看标签：拼盘演出' })).toHaveLength(3)
+  const legacyCard = screen.getByRole('heading', { name: '旧分类活动' }).closest('article')
+  fireEvent.click(within(legacyCard).getByRole('button', { name: '查看标签：拼盘演出' }))
+  expect(titles()).toEqual(['新标签活动', '分类与标签都有', '旧分类活动'])
+  fireEvent.click(screen.getByRole('button', { name: '最新' }))
+  expect(titles()).toEqual(['旧分类活动', '分类与标签都有', '新标签活动'])
+  fireEvent.change(screen.getByRole('searchbox'), { target: { value: '南京' } })
+  expect(titles()).toEqual(['分类与标签都有'])
+})
+
+it('直接访问旧活动类型的标签链接可以找到原有活动', () => {
+  fixture.content.events = [{ id: 'legacy', title: '旧分类活动', category: '拼盘演出' }, { id: 'other', title: '其他活动', category: '其他' }]
+  render(<EventsPage />, '/events?tag=' + encodeURIComponent('拼盘演出'))
+  expect(titles()).toEqual(['旧分类活动'])
+  expect(screen.getByRole('button', { name: '查看标签：拼盘演出' }).getAttribute('aria-pressed')).toBe('true')
+})
+
 it.each(timelines)('$label 点击内容标签进行精确筛选，可叠加搜索排序并清除', ({ label, key, dateField, Page }) => {
   fixture.content[key] = [
     { id: 'old', title: '南京旧记录', tags: ['音乐会', '南京'], [dateField]: '2025-01-01' },
@@ -65,7 +90,7 @@ it.each(timelines)('$label 点击内容标签进行精确筛选，可叠加搜�
   expect(titles()).toEqual(['南京新记录', '南京旧记录'])
   const filter = screen.getByRole('group', { name: `${label}标签筛选` })
   expect(within(filter).getByRole('button', { name: '音乐会', exact: true }).getAttribute('aria-pressed')).toBe('true')
-  fireEvent.click(screen.getByRole('button', { name: '最新在前' }))
+  fireEvent.click(screen.getByRole('button', { name: '最新' }))
   expect(titles()).toEqual(['南京旧记录', '南京新记录'])
   fireEvent.change(screen.getByRole('searchbox'), { target: { value: '现场' } })
   expect(titles()).toEqual(['南京新记录'])
@@ -109,17 +134,17 @@ it.each(timelines)('$label 使用一个按钮切换时间正反序，日期待�
   render(<Page />)
   const sortGroup = screen.getByRole('group', { name: `${label}时间排序` })
   expect(within(sortGroup).getAllByRole('button')).toHaveLength(1)
-  const toggle = within(sortGroup).getByRole('button', { name: '最新在前' })
+  const toggle = within(sortGroup).getByRole('button', { name: '最新' })
   expect(toggle.title).toBe('点击切换为最早在前')
   expect(titles()).toEqual(['最新记录', '同一时间记录', '中间记录', '较早记录', '无效日期记录', '缺失日期记录'])
   for (const node of screen.getAllByText('日期待定')) expect(node.closest('time').hasAttribute('datetime')).toBe(false)
 
   fireEvent.click(toggle)
-  expect(within(sortGroup).getByRole('button', { name: '最早在前' })).toBe(toggle)
+  expect(within(sortGroup).getByRole('button', { name: '最早' })).toBe(toggle)
   expect(toggle.title).toBe('点击切换为最新在前')
   expect(titles()).toEqual(['较早记录', '中间记录', '最新记录', '同一时间记录', '无效日期记录', '缺失日期记录'])
   fireEvent.click(toggle)
-  expect(within(sortGroup).getByRole('button', { name: '最新在前' })).toBe(toggle)
+  expect(within(sortGroup).getByRole('button', { name: '最新' })).toBe(toggle)
   expect(titles()[0]).toBe('最新记录')
   expect(fixture.content[key]).toEqual(original)
 })
@@ -136,7 +161,7 @@ it.each(timelines)('$label 支持多个关键词跨字段搜索，排序保留�
   expect(titles()).toEqual(['Critty 最新演出', 'Critty 较早演出'])
   expect(screen.getByRole('status').textContent).toBe(`共 2 ${unit}${label} · 搜索结果`)
   expect(screen.getAllByText('Critty', { selector: 'mark' })).toHaveLength(2)
-  fireEvent.click(screen.getByRole('button', { name: '最新在前' }))
+  fireEvent.click(screen.getByRole('button', { name: '最新' }))
   expect(titles()).toEqual(['Critty 较早演出', 'Critty 最新演出'])
   expect(input.value).toBe('  ＣＲＩＴＴＹ   轮回之境 ')
   fireEvent.change(input, { target: { value: '不存在的消息' } })

@@ -11,7 +11,7 @@ export function TimelineTools({ label, placeholder, query, setQuery, sortOrder, 
       <div role="group" aria-label={`${label}时间排序`}>
         <button type="button" className="timeline-sort-toggle" title={`点击切换为${newestFirst ? '最早在前' : '最新在前'}`} onClick={() => setSortOrder((current) => current === 'desc' ? 'asc' : 'desc')}>
           <SortIcon size={16} aria-hidden="true" />
-          <span>{newestFirst ? '最新在前' : '最早在前'}</span>
+          <span>{newestFirst ? '最新' : '最早'}</span>
         </button>
       </div>
       <label className="album-search">

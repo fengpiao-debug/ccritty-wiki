@@ -21,6 +21,38 @@ const { saveItem, getItem, listVersions, restoreItem } = await import(moduleUrl(
 const actor = { username: 'test-editor' }
 beforeEach(() => { memory.state.content = { photos: [] }; memory.state.versions = [] })
 
+test('legacy event categories migrate on partial edits, can be cleared and restored from old snapshots', async () => {
+  memory.state.content.events = [{ id: 'legacy', type: 'event', title: '旧活动', category: '拼盘演出', tags: [] }]
+  await saveItem('event', 'legacy', { cover: '/uploads/images/cover.jpg' }, actor)
+  memory.reload()
+  assert.deepEqual(getItem('event', 'legacy').tags, ['拼盘演出'])
+  assert.equal(Object.hasOwn(getItem('event', 'legacy'), 'category'), false)
+  const initial = memory.state.versions.find((item) => item.changeSummary === '初始版本')
+  await saveItem('event', 'legacy', { tags: ['拼盘演出', '南京', '国风'] }, actor)
+  memory.reload()
+  assert.deepEqual(getItem('event', 'legacy').tags, ['拼盘演出', '南京', '国风'])
+  await restoreItem('event', 'legacy', initial.id, actor)
+  memory.reload()
+  assert.deepEqual(getItem('event', 'legacy').tags, ['拼盘演出'])
+  assert.equal(Object.hasOwn(getItem('event', 'legacy'), 'category'), false)
+  await saveItem('event', 'legacy', { tags: [] }, actor)
+  await saveItem('event', 'legacy', { title: '全部清空后再次编辑' }, actor)
+  memory.reload()
+  assert.deepEqual(getItem('event', 'legacy').tags, [])
+})
+
+test('explicit tags replace legacy categories and clearing cannot resurrect a category', async () => {
+  for (const tags of [[], ['国风', '南京']]) {
+    memory.state.content.events = [{ id: 'legacy', type: 'event', category: '拼盘演出', tags: ['现场'] }]
+    await saveItem('event', 'legacy', { tags }, actor)
+    memory.reload()
+    assert.deepEqual(getItem('event', 'legacy').tags, tags)
+    assert.equal(Object.hasOwn(getItem('event', 'legacy'), 'category'), false)
+    await saveItem('event', 'legacy', { title: '继续编辑' }, actor)
+    assert.deepEqual(getItem('event', 'legacy').tags, tags)
+  }
+})
+
 test('news and event tags survive save/reload, partial edits and restoring tagged or legacy versions', async () => {
   for (const [type, collection] of [['news', 'news'], ['event', 'events']]) {
     memory.state.content[collection] = [{ id: type + '-tags', type, title: '旧内容' }]
