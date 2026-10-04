@@ -1,8 +1,8 @@
 // 前后台共用图集格式；读取旧单图时兼容转换，不修改原始记录。
 export const PHOTO_CATEGORIES = [
-  { value: 'event', label: '现场（活动）' },
-  { value: 'portrait', label: '写真（CC发布的）' },
-  { value: 'life', label: '生活照（CC发布的）' },
+  { value: 'event', label: '现场' },
+  { value: 'portrait', label: '写真' },
+  { value: 'life', label: '生活照' },
   { value: 'other', label: '其他' },
 ]
 export const PHOTO_AUTHOR_TYPES = [
