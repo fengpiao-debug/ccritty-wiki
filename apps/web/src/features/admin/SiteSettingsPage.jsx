@@ -6,6 +6,7 @@ import { DEFAULT_SITE_SETTINGS, validateSiteSettings } from '@artist-wiki/conten
 import { contentApi } from '../../lib/api'
 import { useSiteSettings } from '../public/useSiteSettings'
 import { SiteImageField } from './SiteImageField'
+import { Markdown } from '../public/Markdown'
 
 export function SiteSettingsPage() {
   const { updateSettings } = useSiteSettings()
@@ -38,7 +39,7 @@ export function SiteSettingsPage() {
       setDraft({ ...DEFAULT_SITE_SETTINGS, ...result.settings })
       updateSettings(result.settings)
       setSavedRevision((current) => current + 1)
-      setNotice('网站设置已保存，网站标题、图标、顶部和页脚已更新。')
+      setNotice('网站设置已保存，网站标题、图标、顶部、页脚和关于页面已更新。')
     } catch (err) { setError(err.message) }
     finally { setSaving(false) }
   }
@@ -98,13 +99,19 @@ export function SiteSettingsPage() {
         <section className="cms-registry">
           <div className="cms-section-title"><h2>关于页面</h2></div>
           <div className="cms-dialog-body cms-form-grid">
-            <p className="full cms-muted">访客可从公共页脚进入关于页面。</p>
+            <p className="full cms-muted">访客可从公共页脚进入关于页面。正文支持标题、表格、列表、分隔线、图片及邮箱链接。</p>
             {input('aboutTitle', '关于标题', '关于本站（留空使用默认标题）')}
             <label className="full">关于内容（Markdown）
               <textarea rows={12} value={draft?.aboutMarkdown || ''} maxLength={20000}
                 placeholder="介绍网站、整理缘由、联系方式等，支持 Markdown 格式。"
                 onChange={(event) => patch('aboutMarkdown', event.target.value)} />
             </label>
+            {draft?.aboutMarkdown?.trim() && <details className="full cms-markdown-preview">
+              <summary>预览关于内容</summary><Markdown>{draft.aboutMarkdown}</Markdown>
+            </details>}
+            {image('aboutQrCodeUrl', '关于页面二维码', 'siteQrCode', '在关于正文下方显示，保留图片原始尺寸和比例。上传后点击“保存网站设置”生效，清除后隐藏。')}
+            {input('aboutWeiboUrl', '微博链接', 'https://weibo.com/你的主页', 'url')}
+            <p className="full cms-muted">填写后在关于页面显示“访问微博”链接，点击在新标签页打开；留空隐藏。</p>
           </div>
         </section>
         <div className="cms-settings-actions"><button className="cms-button primary" disabled={uploading}><Save size={16} />{saving ? '保存中…' : uploading ? '图片上传中…' : '保存网站设置'}</button>

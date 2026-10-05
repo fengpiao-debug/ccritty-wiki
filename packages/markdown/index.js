@@ -1,18 +1,18 @@
-// 文件作用：渲染受限 Markdown 子集，先转义 HTML 和属性引号，避免导入正文注入标签或事件属性。
+// 正文统一支持 Markdown 表格、邮件链接、列表和图片；不执行原始 HTML。
+import MarkdownIt from 'markdown-it'
+
+const parser = new MarkdownIt({ html: false, breaks: true, linkify: true })
+const renderLink = parser.renderer.rules.link_open || ((tokens, index, options, env, renderer) => renderer.renderToken(tokens, index, options))
+parser.renderer.rules.link_open = (tokens, index, options, env, renderer) => {
+  if (/^(?:https?:)?\/\//i.test(tokens[index].attrGet('href') || '')) {
+    tokens[index].attrSet('target', '_blank')
+    tokens[index].attrSet('rel', 'noopener noreferrer')
+  }
+  return renderLink(tokens, index, options, env, renderer)
+}
+parser.renderer.rules.table_open = () => '<div class="markdown-table-scroll" role="region" aria-label="表格" tabindex="0"><table>\n'
+parser.renderer.rules.table_close = () => '</table></div>\n'
+
 export function renderMarkdown(markdown = '') {
-  return String(markdown)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/\[(.+?)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/\n{2,}/g, '</p><p>')
-    .replace(/\n/g, '<br />')
+  return parser.render(String(markdown ?? ''))
 }

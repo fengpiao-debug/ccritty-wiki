@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Disc3, Plus, Play, Search, X } from 'lucide-react'
 import { matchesSong, safeMvUrl } from '@artist-wiki/content-types'
 import { useContent } from './useContent'
@@ -14,10 +14,17 @@ export function MusicPage() {
   const [query, setQuery] = useState('')
   const [view, setView] = useState('songs')
   const [selectedAlbum, setSelectedAlbum] = useState(null)
-  const albums = [...new Set(content.songs.map(albumName))].map((name) => {
-    const songs = content.songs.filter((song) => albumName(song) === name)
-    return { name, songs, cover: songs.find((song) => song.cover || song.coverUrl)?.cover || songs.find((song) => song.coverUrl)?.coverUrl || '' }
-  })
+  const albums = useMemo(() => {
+    const grouped = new Map()
+    for (const song of content.songs) {
+      const name = albumName(song)
+      if (!grouped.has(name)) grouped.set(name, { name, songs: [], cover: '' })
+      const album = grouped.get(name)
+      album.songs.push(song)
+      if (!album.cover) album.cover = song.cover || song.coverUrl || ''
+    }
+    return [...grouped.values()]
+  }, [content.songs])
   const albumSongs = selectedAlbum === null ? content.songs : content.songs.filter((song) => albumName(song) === selectedAlbum)
   const visible = albumSongs.filter((song) => matchesSong(song, query))
   const visibleAlbums = albums.filter((album) => album.songs.some((song) => matchesSong(song, query)))
@@ -28,6 +35,13 @@ export function MusicPage() {
       <button type="button" aria-pressed={view === 'songs'} onClick={() => { setView('songs'); setSelectedAlbum(null) }}>全部歌曲</button>
       <button type="button" aria-pressed={view === 'albums'} onClick={() => { setView('albums'); setSelectedAlbum(null) }}>按专辑浏览</button>
     </div><label className="album-search"><Search size={18} /><input aria-label="搜索歌曲" placeholder="搜索歌名、歌手、专辑、歌词…" value={query} onChange={(e) => setQuery(e.target.value)} />{query && <button type="button" className="album-icon" aria-label="清空歌曲搜索" onClick={() => setQuery('')}><X size={16} /></button>}</label></div>
+    {albums.length > 0 && <section className="music-album-filter" aria-label="专辑筛选">
+      <div className="music-album-options" role="group" aria-label="按专辑筛选歌曲">
+        <button type="button" aria-pressed={selectedAlbum === null} onClick={() => setSelectedAlbum(null)}>全部专辑</button>
+        {albums.map((album) => <button type="button" key={album.name} aria-pressed={selectedAlbum === album.name}
+          aria-label={`筛选专辑 ${album.name}`} onClick={() => { setView('songs'); setSelectedAlbum(album.name) }}>{album.name}<span>{album.songs.length}</span></button>)}
+      </div>
+    </section>}
     {showAlbums ? <>
       <p className="album-results" role="status">共 {visibleAlbums.length} 张专辑</p>
       <div className="music-albums">{visibleAlbums.map((album) => <article className="music-album-card" key={album.name}>
@@ -39,7 +53,7 @@ export function MusicPage() {
       </article>)}</div>
       {!visibleAlbums.length && <p className="empty-copy">没有找到匹配的专辑，试试其他关键词。</p>}
     </> : <>
-      <div className="music-list-heading"><div>{selectedAlbum !== null && <><button type="button" className="text-link" onClick={() => setSelectedAlbum(null)}>← 返回专辑</button><h2><SearchHighlight query={query}>{selectedAlbum}</SearchHighlight></h2></>}<p role="status">共 {visible.length} 首歌曲{query && ' · 搜索结果'}</p></div>
+      <div className="music-list-heading"><div>{selectedAlbum !== null && <><button type="button" className="text-link" onClick={() => setSelectedAlbum(null)}>{view === 'albums' ? '← 返回专辑' : '← 查看全部歌曲'}</button><h2><SearchHighlight query={query}>{selectedAlbum}</SearchHighlight></h2></>}<p role="status">共 {visible.length} 首歌曲{query && ' · 搜索结果'}</p></div>
         <button type="button" className="subtle-button compact" disabled={!(selectedAlbum !== null ? albumSongs : visible).some((song) => song.audioUrl)} onClick={() => player.playSongs(selectedAlbum !== null ? albumSongs : visible)}><Play size={15} />{selectedAlbum !== null ? '播放整张专辑' : '播放全部'}</button>
       </div>
       {player.nextSong && <p className="music-next-notice" role="status">下一首播放：{player.nextSong.title}</p>}

@@ -142,6 +142,9 @@
 .cms-site-image-preview { display: grid; place-items: center; flex: 0 0 64px; width: 64px; height: 64px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--muted); font-size: 11px; }
 .cms-site-image-preview img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .cms-site-image > .cms-button { justify-self: start; }
+.cms-markdown-preview { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 6px; }
+.cms-markdown-preview summary { cursor: pointer; color: var(--red); font-size: 13px; }
+.cms-markdown-preview .markdown-body { margin-top: 20px; }
 .cms-summary-field { margin-top: 20px; }
 .cms-permissions { margin-top: 25px; }
 .cms-permissions h3, .cms-version-preview h3 { font-size: 14px; font-weight: 600; margin: 0 0 14px; }

@@ -60,6 +60,13 @@
 
 /* 作品目录与视频资料。 */
 .music-albums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px; }
+.music-album-filter { display: flex; align-items: baseline; gap: 14px 24px; padding: 22px 0; border-bottom: 1px solid var(--line); }
+.music-album-options { display: flex; flex-wrap: wrap; gap: 8px 10px; min-width: 0; }
+.music-album-options button { display: inline-flex; align-items: baseline; gap: 8px; max-width: 100%; padding: 6px 10px; border: 1px solid transparent; border-radius: 3px; background: transparent; color: var(--muted); font-size: 13px; text-align: left; overflow-wrap: anywhere; }
+.music-album-options button:hover { color: var(--red); border-color: var(--line); }
+.music-album-options button[aria-pressed=true] { color: var(--red-deep); border-color: rgba(168,45,44,.25); background: rgba(168,45,44,.06); }
+.music-album-options button span { color: var(--muted); font: 10px ui-sans-serif, sans-serif; }
+@media (max-width: 600px) { .music-album-filter { flex-direction: column; gap: 12px; }.music-album-options { gap: 5px; }.music-album-options button { padding: 7px 9px; } }
 .music-album-card { padding-bottom: 18px; border-bottom: 1px solid var(--line); }
 .music-album-open { width: 100%; padding: 0; border: 0; background: transparent; text-align: left; }
 .music-album-art { aspect-ratio: 1; display: grid; place-items: center; background: var(--paper-deep); color: var(--red-deep); }

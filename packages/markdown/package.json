@@ -3,5 +3,8 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "exports": "./index.js"
+  "exports": "./index.js",
+  "dependencies": {
+    "markdown-it": "^15.0.2"
+  }
 }

@@ -19,6 +19,39 @@ beforeEach(() => {
   ]
 })
 afterEach(cleanup)
+it('filters tracks directly by album below the toolbar, combines search and resets the filter', () => {
+  const { container } = render(<MusicPage />)
+  const filters = screen.getByRole('group', { name: '按专辑筛选歌曲' })
+  expect(container.querySelector('.album-tools').nextElementSibling.contains(filters)).toBe(true)
+  fireEvent.click(screen.getByRole('button', { name: '筛选专辑 秋日' }))
+  expect(screen.getByRole('button', { name: '筛选专辑 秋日' }).getAttribute('aria-pressed')).toBe('true')
+  expect(screen.getByRole('status').textContent).toContain('共 2 首歌曲')
+  expect(screen.queryByRole('button', { name: '播放 无音源歌曲' })).toBeNull()
+  fireEvent.change(screen.getByLabelText('搜索歌曲'), { target: { value: '清风' } })
+  expect(screen.getByRole('status').textContent).toContain('共 1 首歌曲')
+  fireEvent.click(screen.getByRole('button', { name: '播放整张专辑' }))
+  expect(player.playSongs).toHaveBeenLastCalledWith(fixture.songs.slice(0, 2))
+  fireEvent.click(screen.getByRole('button', { name: '筛选专辑 冬日' }))
+  expect(screen.getByText('没有找到匹配的歌曲，试试歌名、合唱歌手或一段歌词。')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: '清空歌曲搜索' }))
+  expect(screen.getByRole('button', { name: '播放 无音源歌曲' })).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: '全部专辑' }))
+  expect(screen.getByRole('status').textContent).toContain('共 3 首歌曲')
+})
+
+it('deduplicates trimmed album names, groups unassigned tracks and handles an empty catalog', () => {
+  fixture.songs[1].album = ' 秋日 '
+  fixture.songs[2].album = ''
+  const view = render(<MusicPage />)
+  expect(screen.getAllByRole('button', { name: '筛选专辑 秋日' })).toHaveLength(1)
+  fireEvent.click(screen.getByRole('button', { name: '筛选专辑 未归入专辑' }))
+  expect(screen.getByRole('status').textContent).toContain('共 1 首歌曲')
+  expect(screen.getByRole('button', { name: '播放 无音源歌曲' }).disabled).toBe(true)
+  view.unmount(); fixture.songs = []; render(<MusicPage />)
+  expect(screen.queryByRole('group', { name: '按专辑筛选歌曲' })).toBeNull()
+  expect(screen.getByRole('status').textContent).toContain('共 0 首歌曲')
+})
+
 it('schedules a song to play next and disables unavailable or current tracks', () => {
   player.currentSong = fixture.songs[0]
   const { rerender } = render(<MusicPage />)

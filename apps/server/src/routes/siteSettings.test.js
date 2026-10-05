@@ -86,7 +86,7 @@ test('branding settings round trip through public and admin APIs and can be clea
 
 test('branding rejects script, credential, malformed and oversized image URLs', async (t) => {
   const { request, entries } = await setup(t)
-  for (const key of ['faviconUrl', 'headerLogoUrl', 'footerLogoUrl']) {
+  for (const key of ['faviconUrl', 'headerLogoUrl', 'footerLogoUrl', 'aboutQrCodeUrl']) {
     for (const value of ['javascript:alert(1)', 'data:image/png;base64,AAAA', '//evil.test/icon.png', '/\\evil.test/icon.png', 'https://user:pass@example.com/a.png', '/bad\npath.png', 'not-a-url', '/' + 'a'.repeat(2000)]) {
       assert.equal((await request('/admin/site-settings', 'admin', { [key]: value })).status, 400, `${key}: ${value}`)
     }
@@ -103,4 +103,23 @@ test('invalid URLs, oversized or non-text values and unknown keys do not change 
   }
   assert.deepEqual((await (await request('/site-settings')).json()).settings, DEFAULT_SITE_SETTINGS)
   assert.equal(entries.length, 0)
+})
+
+test('about QR code and Weibo link persist, reject unsafe links, and clear independently', async (t) => {
+  const { request } = await setup(t)
+  const update = { aboutQrCodeUrl: '/uploads/images/qr.png', aboutWeiboUrl: ' https://weibo.com/example ' }
+  assert.equal((await request('/admin/site-settings', 'admin', update)).status, 200)
+  const settings = (await (await request('/site-settings')).json()).settings
+  assert.equal(settings.aboutQrCodeUrl, update.aboutQrCodeUrl)
+  assert.equal(settings.aboutWeiboUrl, update.aboutWeiboUrl.trim())
+  for (const value of ['javascript:alert(1)', '//weibo.com/example', 'data:text/html,test', 'https://user:password@weibo.com/example', 'not-a-url', 'a'.repeat(2001)]) {
+    assert.equal((await request('/admin/site-settings', 'admin', { aboutWeiboUrl: value })).status, 400)
+  }
+  assert.deepEqual((await (await request('/site-settings')).json()).settings, settings)
+  await request('/admin/site-settings', 'admin', { aboutQrCodeUrl: '' })
+  const cleared = (await (await request('/site-settings')).json()).settings
+  assert.equal(cleared.aboutQrCodeUrl, '')
+  assert.equal(cleared.aboutWeiboUrl, update.aboutWeiboUrl.trim())
+  await request('/admin/site-settings', 'admin', { aboutWeiboUrl: '' })
+  assert.equal((await (await request('/site-settings')).json()).settings.aboutWeiboUrl, '')
 })

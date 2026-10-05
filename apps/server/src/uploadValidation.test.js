@@ -147,9 +147,9 @@ test('all image asset edits require image permission, including song covers', ()
   assert.notEqual(validateAssetChanges({}, { heroImage: '/new.png' }, { role: 'editor', permissions: ['image.song.read', 'image.song.write'] }, 'song'), '')
 })
 
-test('only administrators can upload site icons and logos, even with forged editor grants', () => {
+test('only administrators can upload site icons, logos and QR codes, even with forged editor grants', () => {
   for (const actor of [undefined, { role: 'admin', permissions: [] }, { role: 'editor', permissions: ['user.manage', '*', 'image.write'] }]) {
-    for (const category of ['siteIcon', 'siteLogo']) {
+    for (const category of ['siteIcon', 'siteLogo', 'siteQrCode']) {
       let passed = false
       let status = 200
       requireUploadPermission({ actor, query: { category } }, { status(code) { status = code; return this }, json() {} }, () => { passed = true })
@@ -173,4 +173,17 @@ test('site images are decoded and resized to PNG, preserve aspect ratio, and rej
     assert.equal((await prepareUpload({ originalname: 'bad.png', mimetype: 'image/png', buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) }, category)).ok, false)
     assert.equal(validateUpload({ originalname: 'large.png', mimetype: 'image/png', buffer: Buffer.alloc(5 * 1024 * 1024 + 1) }, category).ok, false)
   }
+})
+
+test('QR uploads preserve image dimensions and pixels and reject damaged and oversized files', async () => {
+  const buffer = await sharp({ create: { width: 513, height: 511, channels: 3, background: '#123456' } }).png().toBuffer()
+  const result = await prepareUpload({ originalname: 'qr.png', mimetype: 'image/png', buffer }, 'siteQrCode')
+  assert.equal(result.ok, true)
+  assert.equal(result.extension, '.png')
+  const metadata = await sharp(result.buffer).metadata()
+  assert.equal(metadata.width, 513)
+  assert.equal(metadata.height, 511)
+  assert.deepEqual(await sharp(result.buffer).raw().toBuffer(), await sharp(buffer).raw().toBuffer())
+  assert.equal((await prepareUpload({ originalname: 'bad.png', mimetype: 'image/png', buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) }, 'siteQrCode')).ok, false)
+  assert.equal(validateUpload({ originalname: 'large.png', mimetype: 'image/png', buffer: Buffer.alloc(5 * 1024 * 1024 + 1) }, 'siteQrCode').ok, false)
 })

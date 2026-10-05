@@ -1,4 +1,4 @@
-// 文件作用：在读取 multipart 文件前验证权限；管理员仅能上传网站图标和标识。
+// 文件作用：在读取 multipart 文件前验证权限；管理员仅能上传网站图标、标识和关于二维码。
 import { UPLOAD_TYPES } from '@artist-wiki/content-types'
 import { can, permissionsForUser } from '@artist-wiki/permissions'
 

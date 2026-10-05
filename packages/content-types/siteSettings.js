@@ -21,9 +21,11 @@ export const DEFAULT_SITE_SETTINGS = Object.freeze({
   policeUrl: '',
   aboutTitle: '关于本站',
   aboutMarkdown: '',
+  aboutQrCodeUrl: '',
+  aboutWeiboUrl: '',
 })
 
-const imageSettings = new Set(['faviconUrl', 'headerLogoUrl', 'footerLogoUrl'])
+const imageSettings = new Set(['faviconUrl', 'headerLogoUrl', 'footerLogoUrl', 'aboutQrCodeUrl'])
 
 export function isSiteImageUrl(value) {
   if (typeof value !== 'string') return false
@@ -51,10 +53,11 @@ export function validateSiteSettings(input) {
       continue
     }
     if (key.endsWith('Url') && value.trim()) {
+      const label = key === 'aboutWeiboUrl' ? '微博链接' : '备案链接'
       try {
         const url = new URL(value.trim())
-        if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return '备案链接需填写不含账号密码的完整 HTTP 或 HTTPS 地址'
-      } catch { return '备案链接需填写完整的 HTTP 或 HTTPS 地址' }
+        if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return `${label}需填写不含账号密码的完整 HTTP 或 HTTPS 地址`
+      } catch { return `${label}需填写完整的 HTTP 或 HTTPS 地址` }
     }
   }
   return ''

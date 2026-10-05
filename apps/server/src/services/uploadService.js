@@ -91,7 +91,13 @@ export async function prepareUpload(file, category) {
   if (category === 'text') return { ok: true, result: { text: validation.text, name: normalizedFile.originalname } }
   let buffer = file.buffer
   let extension = validation.extension
-  if (category === 'siteIcon' || category === 'siteLogo') {
+  if (category === 'siteQrCode') {
+    try {
+      // 二维码保留原始分辨率，不缩放裁剪，避免影响识别。
+      buffer = await sharp(buffer, { limitInputPixels: 40_000_000, failOn: 'warning' }).rotate().png().toBuffer()
+      extension = '.png'
+    } catch { return { ok: false, message: '图片无法安全解码，可能已损坏、尺寸过大或内容伪装' } }
+  } else if (category === 'siteIcon' || category === 'siteLogo') {
     try {
       // 站点图片取第一帧并转成 PNG，favicon 使用透明留边，保留原始比例。
       buffer = await sharp(buffer, { limitInputPixels: 40_000_000, failOn: 'warning' })
