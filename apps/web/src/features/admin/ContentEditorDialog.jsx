@@ -54,6 +54,7 @@ export function ContentEditorDialog({ item, module, canWrite, onClose, onSaved }
     }
     const hasTags = ['news', 'event'].includes(module.type)
     const { pendingTag, ...payload } = draft
+    if (module.type === 'event') payload.status = String(draft.status || '').trim()
     if (module.type === 'news') {
       const invalid = validateNewsKind(draft.newsKind)
       if (invalid) { setError(invalid); return }

@@ -1,6 +1,6 @@
 // 文件作用：apps/web/src/features/public/EventsPage.jsx，负责公开 Wiki 内容展示。
 import { MapPin, Ticket } from 'lucide-react'
-import { getTimelineTags, isPendingEvent, eventStatusLabel, PENDING_EVENT_NOTICE } from '@artist-wiki/content-types'
+import { getTimelineTags, isPendingEvent, eventStatusLabel, EVENT_STATUSES, PENDING_EVENT_NOTICE } from '@artist-wiki/content-types'
 import { useContent } from './useContent'
 import { Markdown } from './Markdown'
 import { PageHeading } from './NewsPage'
@@ -27,7 +27,7 @@ export function EventsPage() {
             <div className="event-dot" aria-hidden="true"></div>
             <div className="event-body">
               {(event.status || getTimelineTags(event).length > 0) && <div className="event-topline">
-                {event.status && <span className={'status-pill status-' + event.status}><SearchHighlight query={query}>{eventStatusLabel(event.status)}</SearchHighlight></span>}
+                {event.status && <span className={'status-pill status-' + (EVENT_STATUSES.some((status) => status.value === event.status) ? event.status : 'custom')}><SearchHighlight query={query}>{eventStatusLabel(event.status)}</SearchHighlight></span>}
                 <TimelineTags {...timeline} tags={getTimelineTags(event)} />
               </div>}
               <div className={`event-content${event.cover ? ' has-cover' : ''}`}>

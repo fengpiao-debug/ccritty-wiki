@@ -116,8 +116,8 @@
 .cms-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 17px 20px; }
 .cms-form-grid label, .cms-summary-field { display: grid; gap: 7px; font-size: 12px; }
 .cms-form-grid .full { grid-column: 1 / -1; }
-.cms-news-kind-field { display: grid; gap: 8px; }
-.cms-news-kind-field p { margin: 0; line-height: 1.7; }
+.cms-news-kind-field, .cms-event-status-field { display: grid; gap: 8px; }
+.cms-news-kind-field p, .cms-event-status-field p { margin: 0; line-height: 1.7; }
 .cms-news-kind-options { display: flex; flex-wrap: wrap; gap: 7px; }
 .cms-news-kind-options button { padding: 5px 10px; border: 1px solid var(--line); border-radius: 3px; background: transparent; color: var(--muted); font: 12px/1.6 ui-sans-serif, sans-serif; cursor: pointer; }
 .cms-news-kind-options button[aria-pressed="true"] { color: var(--red-deep); background: rgba(168,45,44,.07); border-color: rgba(168,45,44,.3); }
