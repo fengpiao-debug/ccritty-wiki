@@ -4,12 +4,15 @@ import { Link } from 'react-router-dom'
 import { useContent } from './useContent'
 import { Markdown } from './Markdown'
 import { timelineEntries } from '../../utils/timeline'
-import { normalizePhotoAlbum } from '@artist-wiki/content-types'
+import { isUpcomingEvent } from '../../utils/events'
+import { normalizeNewsKind, normalizePhotoAlbum } from '@artist-wiki/content-types'
 
 export function HomePage() {
   const { content, loading } = useContent()
   const profile = content.profile
   const latestNews = timelineEntries(content.news, 'publishedAt').slice(0, 3)
+  const now = Date.now()
+  const upcomingEventCount = content.events.filter((event) => isUpcomingEvent(event, now)).length
 
   return (
     <div className="paper-page">
@@ -38,7 +41,7 @@ export function HomePage() {
 
       <section className="content-band summary-grid">
         <Link to="/music" className="summary-stat"><Music2 size={20} /><strong>{content.songs.length}</strong><span>作品收录</span></Link>
-        <Link to="/events" className="summary-stat"><CalendarDays size={20} /><strong>{content.events.length}</strong><span>未来活动</span></Link>
+        <Link to="/events" className="summary-stat"><CalendarDays size={20} /><strong>{upcomingEventCount}</strong><span>未来活动</span></Link>
         <Link to="/gallery" className="summary-stat"><span className="seal-small">影</span><strong>{content.photos.reduce((count, album) => count + normalizePhotoAlbum(album).images.length, 0)}</strong><span>影像记录</span></Link>
       </section>
 
@@ -49,7 +52,10 @@ export function HomePage() {
           {latestNews.map(({ item, dateLabel }) => (
             <Link key={item.id} to="/news" className="latest-item">
               <time>{dateLabel}</time>
-              <strong>{item.title}</strong>
+              <span className="latest-item-content">
+                <strong>{item.title}</strong>
+                {normalizeNewsKind(item.newsKind) && <span className="news-kind latest-kind">{normalizeNewsKind(item.newsKind)}</span>}
+              </span>
               <ArrowUpRight size={17} />
             </Link>
           ))}

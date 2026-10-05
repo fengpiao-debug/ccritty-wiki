@@ -7,8 +7,12 @@ import { EventsPage } from './EventsPage'
 
 const fixture = vi.hoisted(() => ({ content: { news: [], events: [] }, loading: false }))
 vi.mock('./useContent', () => ({ useContent: () => fixture }))
-beforeEach(() => { fixture.content = { news: [], events: [] }; fixture.loading = false })
-afterEach(cleanup)
+beforeEach(() => {
+  fixture.content = { news: [], events: [] }; fixture.loading = false
+  Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value: function () { this.setAttribute('open', '') } })
+  Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value: function () { this.removeAttribute('open') } })
+})
+afterEach(() => { cleanup(); delete HTMLDialogElement.prototype.showModal; delete HTMLDialogElement.prototype.close })
 const render = (ui, path = '/') => renderView(ui, { wrapper: ({ children }) => <MemoryRouter initialEntries={[path]}>{children}</MemoryRouter> })
 
 it('动态按新到旧排列，无日期项放最后，并保留来源和原始数据顺序', () => {
@@ -43,7 +47,7 @@ it('活动封面读取已保存地址，无封面项不产生空图片且保留�
   render(<EventsPage />)
   expect(screen.getAllByRole('img')).toHaveLength(1)
   expect(screen.getByRole('img', { name: '杭州演出海报' }).getAttribute('src')).toBe('/uploads/images/poster.png')
-  expect(screen.getByRole('link', { name: '查看杭州演出海报原图' }).getAttribute('href')).toBe('/uploads/images/poster.png')
+  expect(screen.getByRole('button', { name: '查看杭州演出海报原图' }).getAttribute('aria-haspopup')).toBe('dialog')
   expect(screen.getByRole('link', { name: '购票 / 报名' }).getAttribute('href')).toBe('https://example.com/tickets')
 })
 
@@ -52,6 +56,35 @@ const timelines = [
   { label: '活动', key: 'events', dateField: 'startsAt', Page: EventsPage, unit: '场' },
 ]
 const titles = () => screen.getAllByRole('heading', { level: 2 }).map((node) => node.textContent)
+
+it.each(timelines)('$label图片在当前页面预览，图片点击不关闭，背景、关闭按钮和 Escape 均可退出', ({ key, Page }) => {
+  fixture.content[key] = [{ id: 'photo', title: '预览测试', cover: '/uploads/images/preview.png' }]
+  const view = render(<Page />)
+  const trigger = screen.getByRole('button', { name: /查看预览测试.*原图/ })
+  const previousOverflow = document.body.style.overflow
+  for (const closeBy of ['background', 'button', 'escape']) {
+    trigger.focus()
+    fireEvent.click(trigger)
+    const dialog = screen.getByRole('dialog', { name: /图片预览：预览测试/ })
+    const image = within(dialog).getByRole('img')
+    expect(image.getAttribute('src')).toBe('/uploads/images/preview.png')
+    expect(document.body.style.overflow).toBe('hidden')
+    fireEvent.click(image)
+    expect(screen.getByRole('dialog')).toBe(dialog)
+    if (closeBy === 'background') fireEvent.click(dialog)
+    else if (closeBy === 'button') fireEvent.click(within(dialog).getByRole('button', { name: '关闭图片预览' }))
+    else fireEvent(dialog, new Event('cancel', { bubbles: false, cancelable: true }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.body.style.overflow).toBe(previousOverflow)
+    expect(document.activeElement).toBe(trigger)
+  }
+  fireEvent.click(trigger)
+  fireEvent.error(within(screen.getByRole('dialog')).getByRole('img'))
+  expect(screen.getByRole('alert').textContent).toContain('图片暂时无法加载')
+  view.unmount()
+  expect(document.body.style.overflow).toBe(previousOverflow)
+  expect(screen.queryByRole('dialog')).toBeNull()
+})
 
 it('待官宣活动无论有无日期都置顶，两组内按所选时间排序且不修改源数据', () => {
   fixture.content.events = [

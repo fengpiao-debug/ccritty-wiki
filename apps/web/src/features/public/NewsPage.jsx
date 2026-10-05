@@ -7,6 +7,7 @@ import { Markdown } from './Markdown'
 import { useTimeline } from './useTimeline'
 import { TimelineTools, TimelineTags } from './TimelineTools'
 import { SearchHighlight } from '../../components/SearchHighlight'
+import { ImagePreview } from '../../components/ImagePreview'
 
 export function NewsPage() {
   const { content, loading } = useContent()
@@ -48,7 +49,7 @@ export function NewsPage() {
               </div>
               <h2><SearchHighlight query={query}>{item.title}</SearchHighlight></h2>
               <TimelineTags {...timeline} tags={getTimelineTags(item)} />
-              {item.cover && <a className="news-cover" href={item.cover} target="_blank" rel="noreferrer" aria-label={`查看${item.title}配图原图`}><img src={item.cover} alt={`${item.title}配图`} loading="lazy" /></a>}
+              {item.cover && <ImagePreview className="news-cover" src={item.cover} alt={`${item.title}配图`} />}
               <Markdown>{item.markdown}</Markdown>
               {item.sourceUrl && <a className="source-link" href={item.sourceUrl} target="_blank" rel="noreferrer">查看来源 <ExternalLink size={14} /></a>}
             </article>

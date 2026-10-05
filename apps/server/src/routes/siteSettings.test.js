@@ -24,12 +24,33 @@ async function setup(t) {
   await once(server, 'listening')
   t.after(() => new Promise((resolve, reject) => server.close((err) => err ? reject(err) : resolve())))
   const request = (path, role, body) => fetch('http://127.0.0.1:' + server.address().port + '/api' + path, {
+    redirect: 'manual',
     method: body === undefined ? 'GET' : 'PUT',
     headers: { 'Content-Type': 'application/json', ...(role ? { 'x-test-role': role } : {}) },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   })
   return { request, entries }
 }
+
+test('favicon follows saved settings without caching redirects, and clearing restores the default', async (t) => {
+  const { request } = await setup(t)
+  for (const [faviconUrl, expected] of [
+    ['', '/favicon-32.png'],
+    ['/uploads/images/first.png', '/uploads/images/first.png'],
+    ['/uploads/images/second.png', '/uploads/images/second.png'],
+    ['https://example.com/favicon.ico', 'https://example.com/favicon.ico'],
+    ['/favicon.ico', '/favicon-32.png'],
+    ['/api/favicon?version=1', '/favicon-32.png'],
+    ['/api/favicon/', '/favicon-32.png'],
+    ['', '/favicon-32.png'],
+  ]) {
+    assert.equal((await request('/admin/site-settings', 'admin', { faviconUrl })).status, 200)
+    const result = await request('/favicon')
+    assert.equal(result.status, 302)
+    assert.equal(result.headers.get('location'), expected)
+    assert.equal(result.headers.get('cache-control'), 'no-store')
+  }
+})
 
 test('admin saves footer/about settings, public reads them, blank values clear existing fields', async (t) => {
   const { request, entries } = await setup(t)

@@ -12,7 +12,7 @@ const content = {
     { id: 'old', title: '最旧消息', publishedAt: '2015-01-03' },
     { id: 'unknown', title: '待定消息', publishedAt: 'invalid' },
     { id: 'middle', title: '较新消息', publishedAt: '2025-01-01' },
-    { id: 'new', title: '最新消息', publishedAt: '2026-10-01' },
+    { id: 'new', title: '最新消息', publishedAt: '2026-10-01', newsKind: ' 新歌发布 ' },
   ],
 }
 const settings = { headerName: '真实站名', siteTitle: '真实标题', footerName: '真实页脚', contactEmail: 'real@example.test' }
@@ -61,6 +61,8 @@ it.each(['content', 'settings'])('慢速 %s 请求期间不渲染演示资料，
   expectNoDemo()
   expect(document.title).toBe('真实标题')
   expect([...document.querySelectorAll('.latest-item strong')].map((node) => node.textContent)).toEqual(['最新消息', '较新消息', '最旧消息'])
+  expect(screen.getByText('新歌发布').closest('.latest-item').textContent).toContain('最新消息')
+  expect(document.querySelectorAll('.latest-kind')).toHaveLength(1)
   expect(screen.getByTestId('player-songs').textContent).toBe('')
 })
 

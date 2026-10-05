@@ -7,6 +7,7 @@ import { PageHeading } from './NewsPage'
 import { useTimeline } from './useTimeline'
 import { TimelineTools, TimelineTags } from './TimelineTools'
 import { SearchHighlight } from '../../components/SearchHighlight'
+import { ImagePreview } from '../../components/ImagePreview'
 
 export function EventsPage() {
   const { content, loading } = useContent()
@@ -37,7 +38,7 @@ export function EventsPage() {
                   <Markdown>{event.markdown}</Markdown>
                   {event.ticketUrl && <a className="source-link" href={event.ticketUrl} target="_blank" rel="noreferrer"><Ticket size={14} />购票 / 报名</a>}
                 </div>
-                {event.cover && <a className="event-cover" href={event.cover} target="_blank" rel="noreferrer" aria-label={`查看${event.title}海报原图`}><img src={event.cover} alt={`${event.title}海报`} loading="lazy" /></a>}
+                {event.cover && <ImagePreview className="event-cover" src={event.cover} alt={`${event.title}海报`} />}
               </div>
             </div>
           </article>
