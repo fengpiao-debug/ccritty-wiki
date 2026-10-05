@@ -39,7 +39,7 @@ export function MusicPage() {
       <div className="music-album-options" role="group" aria-label="按专辑筛选歌曲">
         <button type="button" aria-pressed={selectedAlbum === null} onClick={() => setSelectedAlbum(null)}>全部专辑</button>
         {albums.map((album) => <button type="button" key={album.name} aria-pressed={selectedAlbum === album.name}
-          aria-label={`筛选专辑 ${album.name}`} onClick={() => { setView('songs'); setSelectedAlbum(album.name) }}>{album.name}<span>{album.songs.length}</span></button>)}
+          aria-label={`筛选专辑 ${album.name}`} onClick={() => { setView('songs'); setSelectedAlbum(album.name) }}>{album.name}</button>)}
       </div>
     </section>}
     {showAlbums ? <>
