@@ -1,25 +1,24 @@
 // 文件作用：apps/web/src/features/public/EventsPage.jsx，负责公开 Wiki 内容展示。
 import { MapPin, Ticket } from 'lucide-react'
 import { getTimelineTags, isPendingEvent, eventStatusLabel, EVENT_STATUSES, PENDING_EVENT_NOTICE } from '@artist-wiki/content-types'
-import { useContent } from './useContent'
 import { Markdown } from './Markdown'
 import { PageHeading } from './NewsPage'
 import { useTimeline } from './useTimeline'
 import { TimelineTools, TimelineTags } from './TimelineTools'
+import { TimelinePagination } from './TimelinePagination'
 import { SearchHighlight } from '../../components/SearchHighlight'
 import { ImagePreview } from '../../components/ImagePreview'
 
 export function EventsPage() {
-  const { content, loading } = useContent()
-  const timeline = useTimeline(content.events, 'startsAt', ['title', 'city', 'venue', 'category', 'markdown', (event) => eventStatusLabel(event.status)], isPendingEvent)
-  const { entries, query, selectedTag } = timeline
+  const timeline = useTimeline('events')
+  const { entries, total, loading, error, query, selectedTag } = timeline
   return (
     <div className="content-page timeline-page">
       <PageHeading title="活动" subtitle="Events & Itinerary" />
       <TimelineTools label="活动" placeholder="搜索标题、城市、场地、正文、日期、状态、标签…" {...timeline} />
       {loading && <p className="empty-copy" role="status">正在加载活动…</p>}
-      {!loading && <p className="album-results timeline-results" role="status">共 {entries.length} 场活动{query.trim() && ' · 搜索结果'}{selectedTag && ` · 标签：${selectedTag}`}</p>}
-      {!loading && !entries.length && <p className="empty-copy">{selectedTag ? '没有找到匹配的活动，试试其他标签或清空搜索。' : query.trim() ? '没有找到匹配的活动，试试其他关键词。' : '暂无活动，新的行程将在这里记录。'}</p>}
+      {!loading && (!error || entries.length > 0) && <p className="album-results timeline-results" role="status">共 {total} 场活动{query.trim() && ' · 搜索结果'}{selectedTag && ` · 标签：${selectedTag}`}</p>}
+      {!loading && !error && !entries.length && <p className="empty-copy">{selectedTag ? '没有找到匹配的活动，试试其他标签或清空搜索。' : query.trim() ? '没有找到匹配的活动，试试其他关键词。' : '暂无活动，新的行程将在这里记录。'}</p>}
       <div className="event-timeline">
         {entries.map(({ item: event, timestamp, dateLabel }) => (
           <article className={`event-card${isPendingEvent(event) ? ' event-pending' : ''}`} key={event.id}>
@@ -44,6 +43,7 @@ export function EventsPage() {
           </article>
         ))}
       </div>
+      <TimelinePagination label="活动" {...timeline} />
     </div>
   )
 }

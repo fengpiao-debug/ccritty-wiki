@@ -31,7 +31,8 @@ async function resolveVideo(source) {
 }
 
 export const contentApi = {
-  getPublic: () => apiRequest('/content'),
+  getPublic: () => apiRequest('/content?view=summary'),
+  getTimeline: (type, params, signal) => apiRequest(`/timeline/${type}?${new URLSearchParams(params)}`, { signal }),
   getSiteSettings: () => apiRequest('/site-settings'),
   getAdminSiteSettings: () => apiRequest('/admin/site-settings'),
   saveSiteSettings: (body) => apiRequest('/admin/site-settings', { method: 'PUT', body: JSON.stringify(body) }),

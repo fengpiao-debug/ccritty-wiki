@@ -18,7 +18,7 @@ test('renders nested lists, quotes, images and code without interpreting code as
   assert.match(html, /<ul>[\s\S]*<ul>/)
   assert.match(html, /<ol>/)
   assert.match(html, /<blockquote>/)
-  assert.match(html, /<img src="\/uploads\/images\/qr.png" alt="二维码">/)
+  assert.match(html, /<img src="\/uploads\/images\/qr.png" alt="二维码" loading="lazy" decoding="async">/)
   assert.match(html, /<code>\*\*原样\*\*<\/code>/)
   assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/)
 })

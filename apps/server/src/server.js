@@ -11,12 +11,13 @@ import { validateUserInput } from './services/userValidation.js'
 import { deleteItem, getItem, getSnapshot, listContent, listVersions, restoreItem, saveItem } from './services/contentService.js'
 import { decodeMultipartFilename, prepareUpload, saveUpload } from './services/uploadService.js'
 import { requireUploadPermission } from './middleware/uploadPermission.js'
-import { parseBilibili, publicPhotoAlbum, validateMediaMetadata, validateTags, validateNewsKind } from '@artist-wiki/content-types'
+import { parseBilibili, validateMediaMetadata, validateTags, validateNewsKind } from '@artist-wiki/content-types'
 import { validateAssetChanges } from './services/contentAssetPermissions.js'
 import { listImageAssets, updateImageAsset } from './services/imageAssetService.js'
 import { preparePhotoAlbum } from './services/photoAlbumService.js'
 import { BilibiliMetadataError, resolveBilibiliMetadata } from './services/bilibiliMetadataService.js'
 import { createSiteSettingsRouter } from './routes/siteSettings.js'
+import { createPublicContentRouter } from './routes/publicContent.js'
 
 const app = express()
 const port = Number(process.env.PORT || 3007)
@@ -52,14 +53,7 @@ app.use(express.json({ limit: '5mb' }))
 app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')))
 
 app.get('/api/health', (_request, response) => response.json({ ok: true }))
-app.get('/api/content', (_request, response) => {
-  const content = listContent()
-  for (const [key, value] of Object.entries(content)) {
-    if (Array.isArray(value)) content[key] = value.filter((item) => !item.deletedAt)
-  }
-  content.photos = (content.photos || []).map(publicPhotoAlbum)
-  response.json(content)
-})
+app.use('/api', createPublicContentRouter({ read: () => getState().content }))
 
 app.post('/api/auth/login', async (request, response) => {
   const ip = request.ip || request.socket.remoteAddress || 'unknown'

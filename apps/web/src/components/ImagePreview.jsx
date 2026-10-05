@@ -32,7 +32,7 @@ export function ImagePreview({ src, alt, className, label }) {
   const [open, setOpen] = useState(false)
   return <>
     <button type="button" className={`image-preview-trigger ${className || ''}`} aria-label={label || `查看${alt}原图`} aria-haspopup="dialog" onClick={() => setOpen(true)}>
-      <img src={src} alt={alt} loading="lazy" />
+      <img src={src} alt={alt} loading="lazy" decoding="async" />
     </button>
     {open && <ImagePreviewDialog key={src} src={src} alt={alt} onClose={() => setOpen(false)} />}
   </>

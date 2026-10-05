@@ -2,6 +2,12 @@
 import MarkdownIt from 'markdown-it'
 
 const parser = new MarkdownIt({ html: false, breaks: true, linkify: true })
+const renderImage = parser.renderer.rules.image
+parser.renderer.rules.image = (tokens, index, options, env, renderer) => {
+  tokens[index].attrSet('loading', 'lazy')
+  tokens[index].attrSet('decoding', 'async')
+  return renderImage(tokens, index, options, env, renderer)
+}
 const renderLink = parser.renderer.rules.link_open || ((tokens, index, options, env, renderer) => renderer.renderToken(tokens, index, options))
 parser.renderer.rules.link_open = (tokens, index, options, env, renderer) => {
   if (/^(?:https?:)?\/\//i.test(tokens[index].attrGet('href') || '')) {
