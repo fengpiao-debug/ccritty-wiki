@@ -63,7 +63,7 @@ export function ImageAssetManagementPage() {
   return <>
     <div className="cms-page-heading">
       <div><h1>图片素材</h1><p>内容管理 / 图片素材</p></div>
-      <button className="cms-icon" title="刷新图片素材" aria-label="刷新图片素材" disabled={loading} onClick={reload}><RefreshCw size={17} /></button>
+      <div className="cms-batch-actions">{auth.can('image.write') && <Link className="cms-button" to="/admin/content/photo">批量上传图片 / 管理图集</Link>}<button className="cms-icon" title="刷新图片素材" aria-label="刷新图片素材" disabled={loading} onClick={reload}><RefreshCw size={17} /></button></div>
     </div>
     {error && <p className="cms-alert error" role="alert">{error}</p>}
     {notice && <p className="cms-alert success" role="status">{notice}</p>}

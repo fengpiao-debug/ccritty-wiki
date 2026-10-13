@@ -1,11 +1,12 @@
 // 文件作用：编辑者按授权栏目浏览内容表格，分离查看、编辑、删除与版本操作，避免全内容堆叠。
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowDown, ArrowUp, Eye, History, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Eye, History, Pencil, Plus, RefreshCw, Search, Trash2, UploadCloud } from 'lucide-react'
 import { contentApi } from '../../lib/api'
 import { useAuth } from '../auth/AuthContext'
 import { ContentEditorDialog } from './ContentEditorDialog'
 import { VersionHistoryPanel } from './VersionHistoryPanel'
 import { AdminDialog } from './AdminDialog'
+import { BatchSongUploadDialog } from './BatchSongUploadDialog'
 import { createId, normalizePhotoAlbum, matchesPhotoAlbum, PHOTO_CATEGORIES, photoCategoryLabel, photoAuthorLabel } from '@artist-wiki/content-types'
 import { matchesSong, matchesVideo, VIDEO_CATEGORIES } from '@artist-wiki/content-types'
 import { SearchHighlight } from '../../components/SearchHighlight'
@@ -24,6 +25,7 @@ export function ContentManagementPage({ module }) {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [editing, setEditing] = useState(null)
+  const [batchUploading, setBatchUploading] = useState(false)
   const [history, setHistory] = useState(null)
   const [deleting, setDeleting] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -59,7 +61,10 @@ export function ContentManagementPage({ module }) {
     finally { if (locked) await contentApi.unlock(module.type, deleting.id).catch(() => {}); setBusy(false) }
   }
   return <>
-    <div className="cms-page-heading"><div><h1>{module.label}</h1><p>内容管理 / {module.label}</p></div>{canWrite && module.type !== 'profile' && <button className="cms-button primary" onClick={() => setEditing({ id: createId(module.type), type: module.type, title: '' })}><Plus size={17} />{isAlbum ? '新增图集' : '新增内容'}</button>}</div>
+    <div className="cms-page-heading"><div><h1>{module.label}</h1><p>内容管理 / {module.label}</p></div>{canWrite && module.type !== 'profile' && <div className="cms-batch-actions">
+      {module.type === 'song' && <button className="cms-button" onClick={() => setBatchUploading(true)}><UploadCloud size={17} />批量上传歌曲</button>}
+      <button className="cms-button primary" onClick={() => setEditing({ id: createId(module.type), type: module.type, title: '' })}><Plus size={17} />{isAlbum ? '新增图集 / 批量上传图片' : '新增内容'}</button>
+    </div>}</div>
     {error && !deleting && <p className="cms-alert error" role="alert">{error}</p>}
     {notice && <p className="cms-alert success" role="status">{notice}</p>}
     <section className="cms-registry">
@@ -80,6 +85,7 @@ export function ContentManagementPage({ module }) {
       <div className="cms-pagination"><span>共 {visible.length} 条内容</span></div>
     </section>
     {editing && <ContentEditorDialog item={editing} module={module} canWrite={canWrite} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); setNotice('内容已保存，历史版本已生成'); reload() }} />}
+    {batchUploading && canWrite && module.type === 'song' && <BatchSongUploadDialog onClose={() => setBatchUploading(false)} onSaved={(count) => { setNotice(`已保存 ${count} 首歌曲，历史版本已生成`); reload() }} />}
     {history && <VersionHistoryPanel item={history} module={module} canWrite={canWrite} onClose={() => setHistory(null)} onRestored={() => { setHistory(null); setNotice('已恢复为新版本'); reload() }} />}
     {deleting && <AdminDialog title="删除内容" onClose={() => setDeleting(null)} busy={busy}><div className="cms-dialog-body"><p>确认删除「{deleting.title}」？历史版本将保留。</p>{error && <p className="cms-alert error" role="alert">{error}</p>}</div><footer className="cms-dialog-footer"><button className="cms-button" disabled={busy} onClick={() => setDeleting(null)}>取消</button><button className="cms-button danger" disabled={busy} onClick={remove}>确认删除</button></footer></AdminDialog>}
   </>

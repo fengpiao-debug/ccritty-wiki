@@ -46,7 +46,12 @@ it('重新编辑待官宣活动可改为即将到来并保存，保留拟定时�
 it.each(['pending', '旧活动状态', ''])('只读活动正确回显状态 %s 并禁止修改', (status) => {
   render(<ContentFields type="event" value={{ status }} disabled />)
   const field = screen.getByRole('combobox', { name: '活动状态' })
-  expect(field.value).toBe(status)
+  if (status === '旧活动状态') {
+    expect(field.value).toBe('__custom__')
+    const custom = screen.getByRole('textbox', { name: '自定义状态' })
+    expect(custom.value).toBe(status)
+    expect(custom.disabled).toBe(true)
+  } else expect(field.value).toBe(status)
   expect(field.disabled).toBe(true)
 })
 

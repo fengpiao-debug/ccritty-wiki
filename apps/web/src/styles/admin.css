@@ -321,6 +321,26 @@ p.cms-upload-success { margin: 10px 0 0; font-size: 12px; }
 
 /* 图集表单与多图管理。 */
 .cms-album-section { margin: 28px 0 14px; }
+.cms-batch-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.cms-upload > .cms-batch-actions:not(:empty) { margin-top: 12px; }
+.cms-batch-help { color: var(--muted); font-size: 13px; line-height: 1.8; margin: 0 0 16px; }
+.cms-upload + .cms-batch-help { margin-top: 18px; }
+.cms-batch-queue { display: grid; gap: 8px; max-height: 190px; overflow-y: auto; list-style: none; margin: 12px 0 0; padding: 0; }
+.cms-batch-queue li { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--muted); }
+.cms-batch-filename { flex: 1; min-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+.cms-batch-queue progress { width: 100%; height: 6px; accent-color: var(--red); }
+.cms-batch-songs { display: grid; gap: 16px; }
+.cms-batch-song { padding: 16px; border: 1px solid var(--line); background: rgba(255,255,255,.25); }
+.cms-batch-song-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.cms-batch-song-heading strong { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 13px; font-weight: 500; }
+.cms-batch-song .cms-form-grid input { width: 100%; min-width: 0; }
+.cms-batch-song audio { display: block; width: 100%; height: 34px; margin-top: 14px; }
+.cms-batch-attachments { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; color: var(--muted); font-size: 12px; }
+.cms-batch-attachments img { width: 72px; height: 72px; flex-shrink: 0; object-fit: cover; border-radius: 4px; }
+.cms-batch-attachments p { margin: 4px 0; overflow-wrap: anywhere; }
+.cms-batch-lyrics { margin-top: 12px; font-size: 12px; }
+.cms-batch-lyrics summary { cursor: pointer; color: var(--teal); }
+.cms-batch-lyrics textarea { width: 100%; margin-top: 8px; }
 .cms-album-section h3 { font-size: 15px; margin: 0 0 8px; font-weight: 500; }
 .cms-album-section h3 span { margin-left: 8px; color: var(--red); font-size: 12px; }
 .cms-album-section p, .cms-album-progress, .cms-album-empty { color: var(--muted); font-size: 12px; line-height: 1.8; }

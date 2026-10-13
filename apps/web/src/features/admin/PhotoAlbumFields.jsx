@@ -1,24 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
-import { ArrowDown, ArrowUp, Check, ImagePlus, Trash2 } from 'lucide-react'
-import { createId, PHOTO_CATEGORIES, PHOTO_AUTHOR_TYPES, MAX_ALBUM_IMAGES, normalizePhotoAlbum, validateUploadMetadata, UPLOAD_TYPES } from '@artist-wiki/content-types'
-import { uploadFile } from './uploadApi'
+import { useRef, useState } from 'react'
+import { ArrowDown, ArrowUp, Check, Trash2 } from 'lucide-react'
+import { createId, PHOTO_CATEGORIES, PHOTO_AUTHOR_TYPES, MAX_ALBUM_IMAGES, normalizePhotoAlbum, UPLOAD_TYPES } from '@artist-wiki/content-types'
+import { BatchUploadDropzone } from './BatchUploadDropzone'
 import { toDateTimeInput } from '../../lib/dateTime'
 
 export function PhotoAlbumFields({ value, onChange, disabled, uploads, onBusyChange }) {
   const album = normalizePhotoAlbum(value)
   const [busy, setBusy] = useState(false)
-  const [progress, setProgress] = useState('')
-  const [errors, setErrors] = useState([])
   const [imageUrl, setImageUrl] = useState('')
-  const inputRef = useRef(null)
-  const controller = useRef(null)
-  const mounted = useRef(true)
   const callbacks = useRef({ onChange, onBusyChange })
   callbacks.current = { onChange, onBusyChange }
-  useEffect(() => {
-    mounted.current = true
-    return () => { mounted.current = false; controller.current?.abort() }
-  }, [])
   const patch = (changes) => callbacks.current.onChange?.((current) => {
     const before = normalizePhotoAlbum(current)
     return normalizePhotoAlbum({ ...before, ...(typeof changes === 'function' ? changes(before) : changes) })
@@ -36,43 +27,6 @@ export function PhotoAlbumFields({ value, onChange, disabled, uploads, onBusyCha
       return { images }
     })
   }
-  async function uploadImages(files) {
-    if (disabled || controller.current || !files.length) return
-    files = Array.from(files)
-    if (album.images.length + files.length > MAX_ALBUM_IMAGES) { setErrors(['每个图集最多 ' + MAX_ALBUM_IMAGES + ' 张图片']); return }
-    const abortController = new AbortController()
-    controller.current = abortController
-    setBusy(true); setErrors([])
-    callbacks.current.onBusyChange?.(true)
-    let completed = 0
-    try {
-      // 顺序上传保持选择顺序；每次回填使用最新表单，保留上传期间的文字编辑。
-      for (const [index, file] of Array.from(files).entries()) {
-        if (abortController.signal.aborted) break
-        try {
-          const invalid = validateUploadMetadata(file, 'image')
-          if (invalid) throw new Error(invalid)
-          setProgress('正在上传 ' + (index + 1) + ' / ' + files.length + ' · ' + file.name)
-          const result = await uploadFile(file, 'image', { signal: abortController.signal,
-            onProgress: (percent) => { if (mounted.current) setProgress('正在上传 ' + (index + 1) + ' / ' + files.length + ' · ' + percent + '%') },
-          })
-          if (!mounted.current) break
-          appendImage(result.url); completed++
-        } catch (error) {
-          if (!mounted.current || error.name === 'AbortError') break
-          setErrors((current) => [...current, file.name + '：' + error.message])
-          if ([401, 403].includes(error.status)) break
-        }
-      }
-    } finally {
-      controller.current = null
-      if (mounted.current) {
-        setBusy(false)
-        setProgress((abortController.signal.aborted ? '已取消后续上传；' : '') + '已添加 ' + completed + ' 张图片，保存图集后生效。')
-        callbacks.current.onBusyChange?.(false)
-      }
-    }
-  }
   const localTime = toDateTimeInput(album.publishedAt)
   return <div className="cms-album-editor">
     <div className="cms-form-grid">
@@ -89,14 +43,10 @@ export function PhotoAlbumFields({ value, onChange, disabled, uploads, onBusyCha
       <label>地点<input maxLength={300} disabled={disabled} value={album.location} placeholder="例如：杭州 · 音乐节主舞台" onChange={(e) => patch({ location: e.target.value })} /></label>
     </div>
     <div className="cms-album-section"><h3>图集照片 <span>{album.images.length} 张</span></h3><p>选择一张作为封面，逐张填写关键词和描述。可调整照片顺序。</p></div>
-    {uploads && !disabled && <div className="cms-upload" role="group" aria-label="批量上传图集图片"
-      onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); uploadImages(e.dataTransfer.files) }}>
-      <input hidden ref={inputRef} type="file" multiple accept={UPLOAD_TYPES.image.extensions.join(',')} aria-label="选择图集图片" disabled={busy} onChange={(e) => { uploadImages(e.target.files); e.target.value = '' }} />
-      <div className="cms-upload-main"><ImagePlus size={24} /><div><strong>拖入多张图片，或批量选择</strong><small>每张最大 25MB · 每个图集最多 {MAX_ALBUM_IMAGES} 张 · JPG / PNG / WEBP / GIF / AVIF</small></div><button type="button" className="cms-button" disabled={busy} onClick={() => inputRef.current?.click()}>选择图片</button></div>
-      {busy && <button type="button" className="cms-button" onClick={() => controller.current?.abort()}>取消后续上传</button>}
-      {progress && <p role="status" className="cms-album-progress">{progress}</p>}
-      {errors.length > 0 && <div role="alert" className="cms-upload-error">{errors.map((error, index) => <p key={index}>{error}</p>)}</div>}
-    </div>}
+    {uploads && !disabled && <BatchUploadDropzone category="image" label="批量上传图集图片" inputLabel="选择图集图片" buttonLabel="选择图片"
+      hint={`${UPLOAD_TYPES.image.hint} / 张 · 每个图集最多 ${MAX_ALBUM_IMAGES} 张`}
+      maxFiles={MAX_ALBUM_IMAGES - album.images.length} limitMessage={`每个图集最多 ${MAX_ALBUM_IMAGES} 张图片`}
+      onUploaded={(result) => appendImage(result.url)} onBusyChange={(active) => { setBusy(active); callbacks.current.onBusyChange?.(active) }} />}
     {!disabled && <div className="cms-album-url"><label>添加图片地址<input type="url" value={imageUrl} disabled={busy} placeholder="https://… 或 /uploads/images/…" onChange={(e) => setImageUrl(e.target.value)} /></label><button className="cms-button" type="button" disabled={busy || !imageUrl.trim() || album.images.length >= MAX_ALBUM_IMAGES} onClick={() => { appendImage(imageUrl.trim()); setImageUrl('') }}>添加图片</button></div>}
     <div className="cms-album-images">{album.images.map((image, index) => <section key={image.id} className="cms-album-image" aria-label={'图片 ' + (index + 1)}>
       <div className="cms-album-thumb">{image.url && <img src={image.url} alt={'图集图片 ' + (index + 1)} loading="lazy" />}<span>{index + 1}{album.coverImageId === image.id ? ' · 封面' : ''}</span></div>
