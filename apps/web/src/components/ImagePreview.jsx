@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
-function ImagePreviewDialog({ src, alt, onClose }) {
+export function ImagePreviewDialog({ src, alt, onClose, lockScroll = true }) {
   const dialogRef = useRef(null)
   const [failed, setFailed] = useState(false)
 
@@ -11,17 +11,18 @@ function ImagePreviewDialog({ src, alt, onClose }) {
     const previousFocus = document.activeElement
     const previousOverflow = document.body.style.overflow
     dialog.showModal()
-    document.body.style.overflow = 'hidden'
+    if (lockScroll) document.body.style.overflow = 'hidden'
     return () => {
       dialog.close()
-      document.body.style.overflow = previousOverflow
-      previousFocus?.focus()
+      if (lockScroll) document.body.style.overflow = previousOverflow
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true })
     }
-  }, [])
+  }, [lockScroll])
 
   return createPortal(<dialog ref={dialogRef} className="image-preview-dialog" aria-label={`图片预览：${alt}`}
-    onCancel={(event) => { event.preventDefault(); onClose() }}
-    onClick={(event) => { if (event.target === event.currentTarget) onClose() }}>
+    onCancel={(event) => { event.preventDefault(); event.stopPropagation(); onClose() }}
+    onKeyDown={(event) => event.stopPropagation()}
+    onClick={(event) => { event.stopPropagation(); if (event.target === event.currentTarget) onClose() }}>
     <button type="button" className="image-preview-close" aria-label="关闭图片预览" onClick={onClose}><X size={24} /></button>
     {failed ? <p role="alert">图片暂时无法加载，请关闭后重试。</p>
       : <img src={src} alt={alt} onError={() => setFailed(true)} />}

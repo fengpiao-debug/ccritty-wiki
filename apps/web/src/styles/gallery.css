@@ -38,11 +38,12 @@
 .album-dialog-header .album-icon { position: sticky; top: 12px; border-radius: 50%; background: var(--paper-light); z-index: 1; width: 38px; height: 38px; }
 .album-description { white-space: pre-wrap; overflow-wrap: anywhere; margin: 20px 0; color: var(--muted); line-height: 1.9; font-size: 14px; }
 .album-viewer { position: relative; display: flex; align-items: center; justify-content: center; margin-top: 22px; background: #211e1a; min-height: 160px; }
-.album-viewer > img { display: block; max-width: 100%; max-height: 65dvh; object-fit: contain; }
+.album-photo-preview { display: flex; justify-content: center; max-width: 100%; }
+.album-photo-preview > img { display: block; max-width: 100%; max-height: 65dvh; object-fit: contain; }
 .album-photo-nav { position: absolute; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 40px; height: 44px; border: 1px solid #ffffff3d; background: #15120ea6; color: #fff; border-radius: 3px; }
 .album-photo-nav.previous { left: 12px; }.album-photo-nav.next { right: 12px; }
 .album-photo-info { display: flex; justify-content: space-between; margin: 15px 0; color: var(--muted); font-size: 12px; }
-.album-photo-info a { color: var(--red); }
+.album-photo-info button { border: 0; padding: 0; background: transparent; color: var(--red); font: inherit; }
 .album-image-description { font-size: 14px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
 .album-keywords { display: flex; gap: 12px; font-size: 12px; line-height: 1.8; color: var(--teal); overflow-wrap: anywhere; }
 .album-keywords > span { flex-shrink: 0; color: var(--muted); }
@@ -54,7 +55,7 @@
 @media (max-width: 1000px) { .album-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; } }
 @media (max-width: 600px) {
   .album-grid { grid-template-columns: minmax(0, 1fr); }.album-tools { gap: 16px; }.album-search { width: 100%; }.album-filters { gap: 3px; }.album-filters button { padding: 8px 9px; font-size: 12px; }
-  .album-dialog { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }.album-dialog-content { padding: 16px; }.album-dialog-header h2 { font-size: 22px; }.album-viewer > img { max-height: 55dvh; }
+  .album-dialog { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }.album-dialog-content { padding: 16px; }.album-dialog-header h2 { font-size: 22px; }.album-photo-preview > img { max-height: 55dvh; }
 }
 @media (prefers-reduced-motion: reduce) { .album-cover > img { transition: none; } }
 

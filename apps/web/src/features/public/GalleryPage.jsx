@@ -5,15 +5,18 @@ import { PHOTO_CATEGORIES, normalizePhotoAlbum, matchesPhotoAlbum, photoCategory
 import { useContent } from './useContent'
 import { PageHeading } from './NewsPage'
 import { SearchHighlight } from '../../components/SearchHighlight'
+import { ImagePreviewDialog } from '../../components/ImagePreview'
 import { timelineEntries } from '../../utils/timeline'
 
 const displayTime = (value) => value ? value.slice(0, 16).replace('T', ' ') : ''
 
 function AlbumDetail({ album, onClose }) {
   const [index, setIndex] = useState(Math.max(0, album.images.findIndex((image) => image.id === album.coverImageId)))
+  const [previewOpen, setPreviewOpen] = useState(false)
   const dialogRef = useRef(null)
   const titleId = useId()
   const image = album.images[index]
+  const imageAlt = image && (image.description || image.keywords || album.title + ' · 第 ' + (index + 1) + ' 张')
   useEffect(() => {
     const dialog = dialogRef.current
     const previousFocus = document.activeElement
@@ -32,13 +35,15 @@ function AlbumDetail({ album, onClose }) {
       <div className="album-detail-meta">{photoAuthorLabel(album) && <span>作者：{photoAuthorLabel(album)}</span>}{album.publishedAt && <time dateTime={album.publishedAt}>{displayTime(album.publishedAt)}</time>}{album.location && <span>{album.location}</span>}</div>
       {album.description && <p className="album-description">{album.description}</p>}
       {image ? <>
-        <div className="album-viewer"><img key={image.id} src={image.url} alt={image.description || image.keywords || album.title + ' · 第 ' + (index + 1) + ' 张'} />
+        <div className="album-viewer">
+          <button type="button" className="image-preview-trigger album-photo-preview" aria-label={'放大查看第 ' + (index + 1) + ' 张图片'} aria-haspopup="dialog" onClick={() => setPreviewOpen(true)}><img key={image.id} src={image.url} alt={imageAlt} /></button>
           {album.images.length > 1 && <><button type="button" className="album-photo-nav previous" aria-label="上一张图片" onClick={() => move(-1)}><ArrowLeft size={20} /></button><button type="button" className="album-photo-nav next" aria-label="下一张图片" onClick={() => move(1)}><ArrowRight size={20} /></button></>}
         </div>
-        <div className="album-photo-info"><span role="status">{index + 1} / {album.images.length}</span><a href={image.url} target="_blank" rel="noreferrer">查看原图 ↗</a></div>
+        <div className="album-photo-info"><span role="status">{index + 1} / {album.images.length}</span><button type="button" aria-haspopup="dialog" onClick={() => setPreviewOpen(true)}>查看大图</button></div>
         {image.description && <p className="album-image-description">{image.description}</p>}
         {image.keywords && <p className="album-keywords"><span>关键词</span>{image.keywords}</p>}
         {album.images.length > 1 && <div className="album-thumbnails" aria-label="图集照片">{album.images.map((item, position) => <button type="button" key={item.id} aria-label={'查看第 ' + (position + 1) + ' 张图片'} aria-pressed={position === index} onClick={() => setIndex(position)}><img src={item.url} alt="" loading="lazy" /><span>{position + 1}</span></button>)}</div>}
+        {previewOpen && <ImagePreviewDialog key={image.id} src={image.url} alt={imageAlt} lockScroll={false} onClose={() => setPreviewOpen(false)} />}
       </> : <p className="empty-copy">图集暂无照片。</p>}
     </div>
   </dialog>, document.body)
