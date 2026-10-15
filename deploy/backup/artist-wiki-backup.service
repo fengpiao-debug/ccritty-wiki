@@ -1,0 +1,22 @@
+[Unit]
+Description=Back up Artist Wiki MySQL and uploads to the backup server
+Wants=network-online.target
+After=network-online.target mysqld.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 /opt/artist-wiki/backup-tools/backup.py --config /etc/artist-wiki-backup.json
+TimeoutStartSec=4h
+UMask=0077
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/backups/artist-wiki

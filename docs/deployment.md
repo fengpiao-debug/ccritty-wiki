@@ -45,6 +45,8 @@ systemctl reload nginx
 
 Before a future deployment, back up the database, persistent uploads, private environment, and active release symlink targets. Install Linux dependencies in a new release directory rather than uploading Windows `node_modules`. Keep the API and static release symlinks synchronized. Do not rerun initial content import against an existing site.
 
+Daily off-server backups of the deployed MySQL database and persistent uploads are provided by `deploy/backup/`. The timer runs on the application server at 19:00 Asia/Shanghai and sends verified archives to the destination configured from the private `.env.ssh` file. See [backup operations and recovery](backup.md) for setup, status checks, retention behavior, and recovery scope.
+
 `deploy/artist-wiki.service` and `deploy/nginx.conf.template` contain the deployed service templates. Replace `__SERVER_NAME__` with the intended IP or domain. When adding a domain and HTTPS, also update `WEB_ORIGIN` in `/etc/artist-wiki.env` and restart the API.
 
 Favicon updates require the frontend, API, and Nginx configuration to be deployed together. The HTML uses `/api/favicon` before React loads; this endpoint redirects to the saved icon with `Cache-Control: no-store`, or to `/favicon-32.png` when cleared. The exact Nginx `/favicon.ico` location proxies to the same endpoint, so browsers that request that conventional path also receive the configured icon. Apply the updated template, run `nginx -t`, and reload Nginx when deploying this change. Verify both `/api/favicon` and `/favicon.ico` return a `302` with the current icon in `Location` and `Cache-Control: no-store`.

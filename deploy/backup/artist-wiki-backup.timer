@@ -1,0 +1,11 @@
+[Unit]
+Description=Back up Artist Wiki daily at 19:00 Asia/Shanghai
+
+[Timer]
+OnCalendar=*-*-* 19:00:00 Asia/Shanghai
+Persistent=true
+AccuracySec=1s
+Unit=artist-wiki-backup.service
+
+[Install]
+WantedBy=timers.target

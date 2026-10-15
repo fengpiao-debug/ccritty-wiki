@@ -1,7 +1,9 @@
 node_modules/
+__pycache__/
 dist/
 apps/server/data/store.json
 apps/server/uploads/
 .env
+.env.ssh
 test.env
 .deployment/

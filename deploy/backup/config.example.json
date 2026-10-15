@@ -1,0 +1,11 @@
+{
+  "app_env": "/etc/artist-wiki.env",
+  "uploads_dir": "/opt/artist-wiki/shared/uploads",
+  "local_dir": "/var/backups/artist-wiki",
+  "ssh_key": "/etc/artist-wiki-backup/id_ed25519",
+  "known_hosts": "/etc/artist-wiki-backup/known_hosts",
+  "remote_host": "backup.example.com",
+  "remote_port": 22,
+  "remote_user": "root",
+  "remote_dir": "/var/www/stock_back/artist-wiki"
+}
