@@ -29,7 +29,9 @@
 @media (max-width: 1000px) { .public-footer-main { gap: 32px; grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 800px) { .public-footer { width: calc(100% - 32px); }.public-footer-main { padding: 36px 0; gap: 32px 24px; } }
 @media (max-width: 480px) { .public-footer-brand { grid-column: 1 / -1; }.public-footer-main { gap: 28px 20px; }.public-footer-column:last-child { grid-column: 1 / -1; }.public-footer-bottom { justify-content: flex-start; padding: 18px 0; } }
-.public-header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 24px; width: min(1320px, calc(100% - 72px)); min-height: 82px; margin: 0 auto; border-bottom: 1px solid var(--line); background: rgba(244,240,229,.82); backdrop-filter: blur(16px); }
+.public-header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 24px; width: min(1320px, calc(100% - 72px)); min-height: 82px; margin: 0 auto; border-bottom: 1px solid var(--line); background: transparent; }
+/* 页顶透出连续的页面渐变，仅在内容滚过导航时增加底色以保持可读性。 */
+.public-header.is-scrolled { background: rgba(244,240,229,.82); backdrop-filter: blur(16px); }
 .brand-lockup { display: flex; align-items: center; gap: 12px; min-width: 0; overflow-wrap: anywhere; }
 .brand-mark, .hero-seal, .seal-small { display: grid; place-items: center; color: #fff4e9; background: var(--red-deep); }
 .brand-mark { flex: 0 0 34px; width: 34px; height: 34px; border-radius: 50%; font-size: 17px; overflow: hidden; }

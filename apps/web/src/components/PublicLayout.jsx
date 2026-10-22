@@ -1,5 +1,5 @@
 // 文件作用：公开 Wiki 的统一页面布局，负责主导航、内容出口和全局播放器。
-import { useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigationType } from 'react-router-dom'
 import { Image, Library, CalendarDays, Newspaper, PlaySquare, UserRound } from 'lucide-react'
 import { useContent } from '../features/public/useContent'
@@ -19,6 +19,13 @@ const navItems = [
 export function PublicLayout() {
   const { pathname, hash } = useLocation()
   const navigationType = useNavigationType()
+  const [isScrolled, setIsScrolled] = useState(() => window.scrollY > 0)
+  useEffect(() => {
+    const updateScrolled = () => setIsScrolled(window.scrollY > 0)
+    updateScrolled()
+    window.addEventListener('scroll', updateScrolled, { passive: true })
+    return () => window.removeEventListener('scroll', updateScrolled)
+  }, [])
   const previousPath = useRef(pathname)
   useLayoutEffect(() => {
     const pageChanged = previousPath.current !== pathname
@@ -43,7 +50,7 @@ export function PublicLayout() {
 
   return (
     <div className="public-app">
-      <header className="public-header">
+      <header className={`public-header${isScrolled ? ' is-scrolled' : ''}`}>
         {showBrand ? <NavLink to="/" className="brand-lockup" onClick={(event) => scrollCurrentPageToTop(event, '/')}>
           <BrandMark src={settings.headerLogoUrl} text={settings.headerMarkText} />
           <span>
