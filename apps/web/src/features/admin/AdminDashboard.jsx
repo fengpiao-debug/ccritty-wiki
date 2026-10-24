@@ -7,12 +7,14 @@ import { ContentManagementPage } from './ContentManagementPage'
 import { AuditLogPage } from './AuditLogPage'
 import { ImageAssetManagementPage } from './ImageAssetManagementPage'
 import { SiteSettingsPage } from './SiteSettingsPage'
+import { GuestbookManagementPage } from './GuestbookManagementPage'
 
 export function AdminDashboard() {
   const auth = useAuth()
   const modules = adminModules.filter((item) => auth.can(`${item.scope}.read`))
   const home = auth.can('user.manage') ? 'users' : (auth.can('image.read') || auth.can('image.song.read') || auth.can('image.video.read')) ? 'images' : modules.length ? `content/${modules[0].type}` : 'unassigned'
   return <Routes>
+    <Route path="guestbook" element={auth.can('user.manage') ? <GuestbookManagementPage /> : <Navigate to="/admin" replace />} />
     <Route index element={<Navigate to={home} replace />} />
     <Route path="users" element={auth.can('user.manage') ? <UserManagementPage /> : <Navigate to="/admin" replace />} />
     <Route path="logs" element={auth.can('user.manage') ? <AuditLogPage /> : <Navigate to="/admin" replace />} />

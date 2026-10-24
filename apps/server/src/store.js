@@ -6,7 +6,7 @@ import { DEFAULT_SITE_SETTINGS } from '@artist-wiki/content-types'
 
 const database = process.env.MYSQL_DATABASE || 'artist_wiki'
 const auditRetentionDays = Math.max(1, Number(process.env.AUDIT_RETENTION_DAYS || 15))
-const pool = mysql.createPool({
+export const pool = mysql.createPool({
   host: process.env.MYSQL_HOST || '127.0.0.1',
   port: Number(process.env.MYSQL_PORT || 3306),
   user: process.env.MYSQL_USER || 'root',

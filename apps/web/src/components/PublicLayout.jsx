@@ -1,7 +1,7 @@
 // 文件作用：公开 Wiki 的统一页面布局，负责主导航、内容出口和全局播放器。
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigationType } from 'react-router-dom'
-import { Image, Library, CalendarDays, Newspaper, PlaySquare, UserRound } from 'lucide-react'
+import { Image, Library, CalendarDays, Newspaper, PlaySquare, UserRound, MessageSquare } from 'lucide-react'
 import { useContent } from '../features/public/useContent'
 import { useSiteSettings } from '../features/public/useSiteSettings'
 import { PublicFooter } from './PublicFooter'
@@ -14,6 +14,7 @@ const navItems = [
   ['/gallery', '影卷', Image],
   ['/music', '作品', Library],
   ['/videos', '视频', PlaySquare],
+  ['/guestbook', '留言', MessageSquare],
 ]
 
 export function PublicLayout() {
@@ -60,7 +61,7 @@ export function PublicLayout() {
         </NavLink> : <span className="brand-loading" aria-label="网站信息加载中" />}
         <nav className="public-nav" aria-label="主导航">
           {navItems.map(([to, label, Icon]) => (
-            <NavLink key={to} to={to} className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`} onClick={(event) => scrollCurrentPageToTop(event, to)}>
+            <NavLink key={to} to={to} aria-label={label} className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`} onClick={(event) => scrollCurrentPageToTop(event, to)}>
               <Icon size={16} />
               <span>{label}</span>
             </NavLink>

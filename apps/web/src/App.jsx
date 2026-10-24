@@ -8,6 +8,7 @@ import { EventsPage } from './features/public/EventsPage'
 import { GalleryPage } from './features/public/GalleryPage'
 import { MusicPage } from './features/public/MusicPage'
 import { VideoPage } from './features/public/VideoPage'
+import { GuestbookPage } from './features/public/GuestbookPage'
 import { AdminDashboard } from './features/admin/AdminDashboard'
 import { AboutPage } from './features/public/AboutPage'
 import { SiteSettingsProvider } from './features/public/useSiteSettings'
@@ -22,6 +23,7 @@ export function App() {
         <Route path="/gallery" element={<GalleryPage />} />
         <Route path="/music" element={<MusicPage />} />
         <Route path="/videos" element={<VideoPage />} />
+        <Route path="/guestbook" element={<GuestbookPage />} />
         <Route path="/about" element={<AboutPage />} />
       </Route>
       <Route path="/admin/*" element={<AdminLayout><AdminDashboard /></AdminLayout>} />

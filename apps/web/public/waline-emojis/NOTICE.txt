@@ -1,0 +1,4 @@
+Waline Emojis 1.4.0 - Weibo pack (unmodified)
+Source: https://github.com/walinejs/emojis
+Package: @waline/emojis@1.4.0
+License: GPL-3.0-or-later; see LICENSE.

@@ -18,6 +18,9 @@ import { preparePhotoAlbum } from './services/photoAlbumService.js'
 import { BilibiliMetadataError, resolveBilibiliMetadata } from './services/bilibiliMetadataService.js'
 import { createSiteSettingsRouter } from './routes/siteSettings.js'
 import { createPublicContentRouter } from './routes/publicContent.js'
+import { createGuestbookRouter } from './routes/guestbook.js'
+import { guestbookStore, initGuestbook } from './services/guestbookStore.js'
+import { createCorsOptions } from './services/corsOptions.js'
 
 const app = express()
 const port = Number(process.env.PORT || 3007)
@@ -29,11 +32,6 @@ const upload = multer({
   limits: { fileSize: 25 * 1024 * 1024, files: 1, fields: 0, parts: 1 },
 })
 const loginAttempts = new Map()
-const allowedOrigins = new Set([
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  process.env.WEB_ORIGIN,
-].filter(Boolean))
 
 app.disable('x-powered-by')
 app.use((request, response, next) => {
@@ -43,17 +41,13 @@ app.use((request, response, next) => {
   response.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
   next()
 })
-app.use(cors({
-  origin(origin, callback) {
-    if (!origin || allowedOrigins.has(origin)) return callback(null, true)
-    callback(new Error('不允许的跨域来源'))
-  },
-}))
+app.use(cors(createCorsOptions()))
 app.use(express.json({ limit: '5mb' }))
 app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')))
 
 app.get('/api/health', (_request, response) => response.json({ ok: true }))
 app.use('/api', createPublicContentRouter({ read: () => getState().content }))
+app.use('/api', createGuestbookRouter({ store: guestbookStore, authenticateAdmin: [authRequired, hydrateUser] }))
 
 app.post('/api/auth/login', async (request, response) => {
   const ip = request.ip || request.socket.remoteAddress || 'unknown'
@@ -307,6 +301,9 @@ app.post('/api/admin/upload', requireUploadPermission, upload.single('file'), as
 })
 
 app.use((error, _request, response, _next) => {
+  if (error.code === 'CORS_ORIGIN_DENIED') {
+    return response.status(403).json({ message: '当前页面来源未获允许，请检查 WEB_ORIGIN 配置' })
+  }
   if (error instanceof multer.MulterError) {
     response.status(400).json({ message: error.code === 'LIMIT_FILE_SIZE' ? '上传文件超过 25MB 限制' : '每次只能上传一个文件，字段名必须为 file' })
     return
@@ -315,6 +312,7 @@ app.use((error, _request, response, _next) => {
 })
 
 await initStore()
+await initGuestbook()
 if (process.env.NODE_ENV === 'production' && (!process.env.ADMIN_JWT_SECRET || process.env.ADMIN_JWT_SECRET.length < 32)) {
   throw new Error('生产环境必须配置长度至少 32 位的 ADMIN_JWT_SECRET')
 }
