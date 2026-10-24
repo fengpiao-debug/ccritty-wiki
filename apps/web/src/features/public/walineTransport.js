@@ -35,7 +35,9 @@ export function walineDraftImages() {
 // The site renders its existing list, filters, reports, and private previews.
 // Waline owns the composer; its internal list is deliberately empty and hidden.
 export async function getComment({ serverURL }) {
-  if (!sessions.has(serverURL)) throw new Error('留言编辑器已关闭，请刷新重试')
+  // The site's own list is rendered outside Waline. The client may request its
+  // internal list during mount after a StrictMode probe has released a session,
+  // so this intentionally remains a stateless empty response.
   return { data: [], count: 0, totalPages: 0, page: 1 }
 }
 
