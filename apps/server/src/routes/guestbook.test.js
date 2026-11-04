@@ -14,7 +14,7 @@ async function setup(t) {
   const app = express()
   app.use(express.json())
   app.use('/api', createGuestbookRouter({
-    authenticateAdmin: [(req, res, next) => {
+    authenticateUser: [(req, res, next) => {
       if (!req.get('X-Test-Role')) return res.status(401).end()
       req.actor = { role: req.get('X-Test-Role'), username: 'reviewer' }; next()
     }],
@@ -58,7 +58,12 @@ async function setup(t) {
         if (action === 'like') return { liked: value, likeCount: value ? 1 : 0 }
         return { reported: true }
       },
-      async resolveReports(id) { return messages.some(item => item.id === id) },
+      async resolveReports(id, action) {
+        const message = messages.find(item => item.id === id)
+        if (!message) return false
+        if (action === 'withdraw') message.status = 'rejected'
+        return true
+      },
     },
   }))
   const server = app.listen(0, '127.0.0.1'); await once(server, 'listening')
@@ -89,13 +94,13 @@ test('pending messages and attachments stay private until approval; withdrawal r
   assert.equal((await request(assetPath, { key: stranger })).status, 404)
   const ownImage = await request(assetPath, { key: owner })
   assert.equal(ownImage.status, 200); assert.equal(ownImage.headers.get('content-type'), 'image/webp')
+  assert.equal((await request('/admin/guestbook')).status, 401)
+  assert.equal((await request(`/admin/guestbook/${item.id}`, { method: 'PATCH', body: { status: 'approved' } })).status, 401)
+  assert.equal((await request(`/admin${assetPath}`)).status, 401)
   assert.equal((await request(`/admin${assetPath}`, { role: 'admin' })).status, 200)
-  for (const role of [undefined, 'editor']) {
-    assert.ok([401, 403].includes((await request('/admin/guestbook', { role })).status))
-    assert.ok([401, 403].includes((await request(`/admin/guestbook/${item.id}`, { role, method: 'PATCH', body: { status: 'approved' } })).status))
-    assert.ok([401, 403].includes((await request(`/admin${assetPath}`, { role })).status))
-  }
-  assert.equal((await request(`/admin/guestbook/${item.id}`, { role: 'admin', method: 'PATCH', body: { status: 'approved' } })).status, 200)
+  assert.equal((await request(`/admin${assetPath}`, { role: 'editor' })).status, 200)
+  assert.equal((await request('/admin/guestbook', { role: 'editor' })).status, 200)
+  assert.equal((await request(`/admin/guestbook/${item.id}`, { role: 'editor', method: 'PATCH', body: { status: 'approved' } })).status, 200)
   assert.equal((await (await request('/guestbook')).json()).items[0].id, item.id)
   assert.equal((await request(assetPath)).status, 200)
   assert.equal((await request(`/admin/guestbook/${item.id}`, { role: 'admin', method: 'PATCH', body: { status: 'rejected' } })).status, 200)
@@ -135,7 +140,7 @@ test('Markdown supports formatting while blocking raw HTML, script URLs and unre
   assert.ok(!html.includes('<script>')); assert.ok(!html.includes('href="javascript:')); assert.ok(!html.includes('<img'))
 })
 
-test('only admins can feature approved messages or delete them; removing content also removes its attachments', async t => {
+test('authenticated CMS users can feature or delete messages; removing content also removes its attachments', async t => {
   const { request } = await setup(t)
   const png = await sharp({ create: { width: 2, height: 2, channels: 4, background: '#fff' } }).png().toBuffer()
   const body = new FormData()
@@ -143,24 +148,21 @@ test('only admins can feature approved messages or delete them; removing content
   body.append('files', new Blob([png], { type: 'image/png' }), 'test.png')
   const { item } = await (await request('/guestbook', { key: owner, body, method: 'POST' })).json()
   const route = `/admin/guestbook/${item.id}`
-  for (const role of [undefined, 'editor']) {
-    assert.ok([401, 403].includes((await request(`${route}/featured`, { role, key: owner, method: 'PATCH', body: { featured: true } })).status))
-    assert.ok([401, 403].includes((await request(route, { role, key: owner, method: 'DELETE' })).status))
-  }
+  assert.equal((await request(`${route}/featured`, { role: 'editor', method: 'PATCH', body: { featured: true } })).status, 409)
   assert.equal((await request(`${route}/featured`, { role: 'admin', method: 'PATCH', body: { featured: true } })).status, 409)
-  await request(route, { role: 'admin', method: 'PATCH', body: { status: 'approved' } })
+  await request(route, { role: 'editor', method: 'PATCH', body: { status: 'approved' } })
   assert.equal((await request(`${route}/featured`, { role: 'admin', method: 'PATCH', body: { featured: 'true' } })).status, 400)
-  assert.equal((await request(`${route}/featured`, { role: 'admin', method: 'PATCH', body: { featured: true } })).status, 200)
+  assert.equal((await request(`${route}/featured`, { role: 'editor', method: 'PATCH', body: { featured: true } })).status, 200)
   assert.equal((await (await request('/guestbook?featured=1')).json()).items[0].featured, true)
-  assert.equal((await (await request('/admin/guestbook?status=featured', { role: 'admin' })).json()).total, 1)
-  await request(route, { role: 'admin', method: 'PATCH', body: { status: 'rejected' } })
+  assert.equal((await (await request('/admin/guestbook?status=featured', { role: 'editor' })).json()).total, 1)
+  await request(route, { role: 'editor', method: 'PATCH', body: { status: 'rejected' } })
   assert.equal((await (await request('/guestbook?featured=1')).json()).total, 0)
   const mine = await (await request('/guestbook/mine', { key: owner })).json()
   assert.equal(mine.items[0].featured, false)
-  assert.equal((await request(route, { role: 'admin', method: 'DELETE' })).status, 200)
+  assert.equal((await request(route, { role: 'editor', method: 'DELETE' })).status, 200)
   assert.equal((await (await request('/guestbook/mine', { key: owner })).json()).total, 0)
   assert.equal((await request(`/guestbook/assets/${item.assets[0].id}`, { key: owner })).status, 404)
-  assert.equal((await request(`/admin/guestbook/assets/${item.assets[0].id}`, { role: 'admin' })).status, 404)
+  assert.equal((await request(`/admin/guestbook/assets/${item.assets[0].id}`, { role: 'editor' })).status, 404)
   assert.equal((await request(route, { role: 'admin', method: 'DELETE' })).status, 404)
 })
 
@@ -180,7 +182,7 @@ test('active SVG, HTML renamed as images, oversized images, and too many attachm
   assert.equal((await (await request('/guestbook/mine', { key: owner })).json()).total, 0)
 })
 
-test('anonymous interactions validate inputs, hide private messages, and protect report moderation', async t => {
+test('anonymous interactions validate inputs, hide private messages, and allow authenticated staff to resolve reports', async t => {
   const { request } = await setup(t)
   const { item } = await (await request('/guestbook', { key: owner, method: 'POST', body: { markdown: '匿名互动测试' } })).json()
   const path = `/guestbook/${item.id}`
@@ -189,14 +191,13 @@ test('anonymous interactions validate inputs, hide private messages, and protect
   assert.equal((await request(`${path}/report`, { key: owner, method: 'POST', body: { reason: '<script>alert(1)</script>' } })).status, 400)
   assert.equal((await request(`${path}/like`, { key: owner, method: 'PUT', body: { liked: true } })).status, 404)
   assert.equal((await request(`${path}/report`, { key: stranger, method: 'POST', body: { reason: 'spam' } })).status, 404)
-  for (const role of [undefined, 'editor']) {
-    assert.ok([401, 403].includes((await request(`/admin${path}/reports`, { role, method: 'PATCH', body: { action: 'withdraw' } })).status))
-  }
+  assert.equal((await request(`/admin${path}/reports`, { method: 'PATCH', body: { action: 'withdraw' } })).status, 401)
   await request(`/admin${path}`, { role: 'admin', method: 'PATCH', body: { status: 'approved' } })
   assert.equal((await request(`${path}/like`, { key: owner, method: 'PUT', body: { liked: true } })).status, 200)
   assert.equal((await request(`${path}/report`, { key: stranger, method: 'POST', body: { reason: 'spam' } })).status, 200)
   assert.equal((await request(`/admin${path}/reports`, { role: 'admin', method: 'PATCH', body: { action: 'delete' } })).status, 400)
-  assert.equal((await request(`/admin${path}/reports`, { role: 'admin', method: 'PATCH', body: { action: 'dismiss' } })).status, 200)
+  assert.equal((await request(`/admin${path}/reports`, { role: 'editor', method: 'PATCH', body: { action: 'withdraw' } })).status, 200)
+  assert.equal((await (await request('/guestbook')).json()).total, 0)
 })
 
 test('interaction rate limiting also applies when anonymous keys change', async t => {

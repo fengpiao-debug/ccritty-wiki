@@ -25,13 +25,13 @@ export function AdminLayout({ children }) {
             <NavLink to="/admin/users" className={navClass}><Users size={18} />账号与权限</NavLink>
             <NavLink to="/admin/logs" className={navClass}><ClipboardList size={18} />操作日志</NavLink>
             <NavLink to="/admin/settings" className={navClass}><Settings size={18} />网站设置</NavLink>
-            <NavLink to="/admin/guestbook" className={navClass}><MessageSquare size={18} />留言管理</NavLink>
           </>}
           {!admin && <>
             {(auth.can('image.read') || auth.can('image.song.read') || auth.can('image.video.read')) && <NavLink to="/admin/images" className={navClass}><Images size={18} />图片素材</NavLink>}
             {adminModules.filter((item) => auth.can(`${item.scope}.read`)).map(({ type, label, icon: Icon }) =>
               <NavLink key={type} to={`/admin/content/${type}`} className={navClass}><Icon size={18} />{label}</NavLink>)}
           </>}
+          <NavLink to="/admin/guestbook" className={navClass}><MessageSquare size={18} />留言管理</NavLink>
         </nav>
         <div className="cms-sidebar-bottom"><span className="cms-status-dot" />{admin ? '系统管理员' : '内容编辑者'}<small>Artist Wiki CMS</small></div>
       </aside>

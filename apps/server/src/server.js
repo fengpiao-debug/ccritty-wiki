@@ -47,7 +47,7 @@ app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')))
 
 app.get('/api/health', (_request, response) => response.json({ ok: true }))
 app.use('/api', createPublicContentRouter({ read: () => getState().content }))
-app.use('/api', createGuestbookRouter({ store: guestbookStore, authenticateAdmin: [authRequired, hydrateUser] }))
+app.use('/api', createGuestbookRouter({ store: guestbookStore, authenticateUser: [authRequired, hydrateUser] }))
 
 app.post('/api/auth/login', async (request, response) => {
   const ip = request.ip || request.socket.remoteAddress || 'unknown'

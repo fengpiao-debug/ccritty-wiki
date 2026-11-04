@@ -21,7 +21,7 @@ try {
   // 重复初始化应保留已有表并正常运行。
   await initGuestbook()
   const app = express(); app.use(express.json())
-  app.use('/api', createGuestbookRouter({ store: guestbookStore, authenticateAdmin: [authRequired, hydrateUser] }))
+  app.use('/api', createGuestbookRouter({ store: guestbookStore, authenticateUser: [authRequired, hydrateUser] }))
   app.use((err, _req, res, _next) => { console.error(err.code || err.message); res.status(500).json({ message: 'failed' }) })
   server = app.listen(0, '127.0.0.1'); await once(server, 'listening')
   const base = `http://127.0.0.1:${server.address().port}/api`

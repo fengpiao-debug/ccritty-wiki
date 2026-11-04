@@ -8,9 +8,7 @@ const ownerHash = request => {
   const key = request.get('X-Guest-Key') || ''
   return /^[a-f0-9]{64}$/.test(key) ? crypto.createHash('sha256').update(key).digest('hex') : null
 }
-const adminOnly = (req, res, next) => req.actor?.role === 'admin' ? next() : res.status(403).json({ message: '仅管理员可管理留言' })
-
-export function createGuestbookRouter({ store, authenticateAdmin }) {
+export function createGuestbookRouter({ store, authenticateUser }) {
   const router = express.Router()
   const attempts = new Map()
   const interactions = new Map()
@@ -86,7 +84,7 @@ export function createGuestbookRouter({ store, authenticateAdmin }) {
       .type('image/webp').send(asset.data)
   }
   router.get('/guestbook/assets/:id', (req, res) => serveAsset(req, res))
-  router.use('/admin/guestbook', ...authenticateAdmin, adminOnly)
+  router.use('/admin/guestbook', ...authenticateUser)
   router.get('/admin/guestbook', async (req, res) => {
     const status = ['pending', 'approved', 'rejected'].includes(req.query.status) ? req.query.status : 'pending'
     res.json(await store.list({ admin: true, status: req.query.status === 'featured' ? 'approved' : status, featuredOnly: req.query.status === 'featured', reportedOnly: req.query.status === 'reported', page: pageNumber(req.query.page) }))

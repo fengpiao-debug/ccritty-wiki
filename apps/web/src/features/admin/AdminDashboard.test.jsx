@@ -6,7 +6,7 @@ import { can, permissionsForUser } from '@artist-wiki/permissions'
 import { AdminDashboard } from './AdminDashboard'
 import { AdminLayout } from '../../components/AdminLayout'
 import { PermissionMatrix } from './PermissionMatrix'
-import { contentApi } from '../../lib/api'
+import { apiRequest, contentApi } from '../../lib/api'
 import { SiteSettingsProvider } from '../public/useSiteSettings'
 import { useState } from 'react'
 
@@ -17,6 +17,7 @@ vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({ session: fixture.user, loading: false, logout: vi.fn(), can: (permission) => can(permissionsForUser(fixture.user), permission) }),
 }))
 vi.mock('../../lib/api', () => ({
+  apiRequest: vi.fn(),
   contentApi: { users: vi.fn(), createUser: vi.fn(), updateUser: vi.fn(), deleteUser: vi.fn(), getAdminContent: vi.fn(), getAdminSiteSettings: vi.fn(), getSiteSettings: vi.fn(), imageAssets: vi.fn(), updateImageAsset: vi.fn(), lock: vi.fn(), unlock: vi.fn() },
 }))
 vi.mock('./uploadApi', () => ({ uploadFile: vi.fn() }))
@@ -30,6 +31,7 @@ beforeEach(() => {
   fixture.user = admin
   vi.clearAllMocks()
   contentApi.users.mockResolvedValue({ items: [admin, editor] })
+  apiRequest.mockResolvedValue({ items: [], total: 0 })
   contentApi.getAdminSiteSettings.mockResolvedValue({ settings: {} })
   contentApi.getSiteSettings.mockResolvedValue({ settings: {} })
   contentApi.getAdminContent.mockResolvedValue({ profile: { id: 'profile', artistName: '测试歌手' }, news: [{ id: 'news-1', title: '测试动态' }], events: [] })
@@ -76,6 +78,13 @@ describe('后台职责与交互', () => {
     mount('/admin/content/news')
     expect(await screen.findByRole('heading', { name: '账号与权限', exact: true })).toBeTruthy()
     expect(contentApi.getAdminContent).not.toHaveBeenCalled()
+  })
+  it('编辑者也能从后台导航进入留言管理', async () => {
+    fixture.user = editor
+    mount('/admin/guestbook')
+    expect(await screen.findByRole('heading', { name: '留言管理' })).toBeTruthy()
+    expect(screen.getByRole('navigation', { name: '后台导航' }).querySelector('a[href="/admin/guestbook"]')).toBeTruthy()
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/guestbook?status=pending&page=1', expect.any(Object)))
   })
   it('文字编辑者仅看到文字栏目，不能进入用户管理', async () => {
     fixture.user = editor
